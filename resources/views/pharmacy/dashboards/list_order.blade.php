@@ -4,15 +4,14 @@
         <div class="row my-2 d-flex justify-content-center">
             <form action="{{ route('pharmacies.dashboard.orders') }}" method="GET" class="col-12 col-md-12">
                 <div class="input-group flex-column flex-md-row">
-                    {{-- <input type="text" id="searchInput" class="form-control" placeholder="Cari Pasien, No Rekam Medis"> --}}
                     {{-- Search --}}
-                    <div class="col-12 col-md-2 mb-3">
+                    <div class="col-12 col-md-2 mb-2">
                         <label for="search" class="form-label">Pencarian</label>
                         <input type="text" id="search" name="search" class="form-control"
                             value="{{ request('search') }}" placeholder="Cari No.RM/Nama Pasien">
                     </div>
                     {{-- Location --}}
-                    <div class="col-12 col-md-2 mb-3">
+                    <div class="col-12 col-md-2 mb-2">
                         <label for="location" class="form-label">Lokasi</label>
                         <select class="form-select" id="location" name="location" aria-label="Default select example">
                             @foreach ($locations as $key => $value)
@@ -23,7 +22,7 @@
                         </select>
                     </div>
                     {{-- Customer Type --}}
-                    <div class="col-12 col-md-2 mb-3">
+                    <div class="col-12 col-md-2 mb-2">
                         <label for="customer_type" class="form-label">Penjamin</label>
                         <select class="form-select" id="customer_type" name="customer_type"
                             aria-label="Default select example">
@@ -35,7 +34,7 @@
                         </select>
                     </div>
                     {{-- Status Order --}}
-                    <div class="col-12 col-md-1 mb-3">
+                    <div class="col-12 col-md-1 mb-2">
                         <label for="status_order" class="form-label">Status Order</label>
                         <select class="form-select" id="status_order" name="status_order"
                             aria-label="Default select example">
@@ -47,7 +46,7 @@
                         </select>
                     </div>
                     {{-- Jenis Order --}}
-                    <div class="col-12 col-md-1 mb-3">
+                    <div class="col-12 col-md-1 mb-2">
                         <label for="jenis_order" class="form-label">Jenis Order</label>
                         <select class="form-select" id="jenis_order" name="jenis_order" aria-label="Default select example">
                             @foreach ($jenisOrders as $key => $value)
@@ -58,15 +57,15 @@
                         </select>
                     </div>
                     {{-- Date --}}
-                    <div class="col-12 col-md-2 mb-3">
+                    <div class="col-12 col-md-2 mb-2">
                         <label for="date" class="form-label">Tanggal</label>
                         <input type="text" class="form-control flatpickr-date" id="date" name="date"
                             placeholder="dd-mm-yyyy" value="{{ $date }}">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-12 col-md-2 mb-2">
                         <div class="row">
                             {{-- Sort By --}}
-                            <div class="col-12 col-md-9 mb-3">
+                            <div class="col-12 col-md-9 mr-0">
                                 <label for="sort_by" class="form-label">OrderBy</label>
                                 <select class="form-select" id="sort_by" name="sort_by"
                                     aria-label="Default select example">
@@ -78,7 +77,7 @@
                                 </select>
                             </div>
                             {{-- Submit Button --}}
-                            <div class="col-12 col-md-3 mb-3 d-flex align-items-end">
+                            <div class="col-12 col-md-3 d-flex align-items-end">
                                 <button type="submit" class="btn btn-success w-100"><i class="bi bi-search"></i></button>
                             </div>
                         </div>
@@ -106,7 +105,6 @@
                         <th scope="col" class="align-middle">Lokasi</th>
                         <th scope="col" class="align-middle">Poli</th>
                         <th scope="col" class="align-middle">Orderer</th>
-                        {{-- <th scope="col" class="align-middle">Avg Time(minutes)</th> --}}
                     </tr>
                 </thead>
                 <tbody class="table-group-divider">
@@ -139,9 +137,7 @@
                             </td>
                             <td>{{ $pharmacy->Dispensary }}</td>
                             <td>{{ $pharmacy->Poli }}</td>
-                            {{-- <td>{{ $pharmacy->RegistrationNo }}</td> --}}
                             <td>{{ $pharmacy->Orderer }}</td>
-                            {{-- <td>10</td> --}}
                         </tr>
                     @empty
                         <tr>

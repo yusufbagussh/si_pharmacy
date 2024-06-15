@@ -37,7 +37,7 @@ class DashboardController extends Controller
         'racikan' => 3600000,
     ];
     public $pages = [
-        '6' => '6',
+        '7' => '7',
         '10' => '10',
         '20' => '20',
         '50' => '50',
@@ -53,7 +53,7 @@ class DashboardController extends Controller
         '2' => 'DESC(Created Date)',
     ];
 
-    public $perPage = 6;
+    public $perPage = 7;
     public $page = 1;
     public $statusOrderId = '2';
     public $jenisOrderId = 'all';
