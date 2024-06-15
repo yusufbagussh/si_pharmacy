@@ -1,0 +1,49 @@
+html,
+body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+.footer {
+    position: relative;
+    bottom: 0;
+    width: 100%;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #1a6d2c;
+    /* Warna hijau lebih gelap untuk tab aktif */
+    border-color: #ffffff;
+    /* Warna putih untuk border */
+    color: #ffffff;
+    /* Pastikan teks tetap putih */
+}
+
+.col-md-1-5 {
+    flex: 0 0 12.5%; /* 1.5/12 = 12.5% */
+    max-width: 12.5%;
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid #ccc;
+    text-align: center;
+}
+
+/* @media (max-width: 576px) {
+    .input-group {
+        flex-direction: column;
+    }
+
+    .input-group .form-control,
+    .input-group .btn {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .input-group .btn {
+        margin-bottom: 0;
+    }
+} */
