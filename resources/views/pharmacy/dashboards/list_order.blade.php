@@ -91,7 +91,6 @@
                 <thead>
                     <tr>
                         <th scope="col" class="align-middle">No</th>
-                        {{-- <th scope="col" class="align-middle">Nomer Registrasi</th> --}}
                         <th scope="col" class="align-middle">No.RM</th>
                         <th scope="col" class="align-middle">Nama Pasien</th>
                         <th scope="col" class="align-middle">Penjamin</th>
@@ -128,7 +127,7 @@
                             </td>
                             <td class="jenis-resep">{{ $pharmacy->JenisResep }}</td>
                             <td>
-                                {{ $pharmacy->SendOrderDateTime ? \Carbon\Carbon::parse($pharmacy->SendOrderDateTime)->format('d-m-Y H:i:s') : '-' }}
+                                {{ $pharmacy->SendOrderDateTime ? \Carbon\Carbon::parse($pharmacy->SendOrderDateTime)->format('d-m-Y H:i') : '-' }}
                             </td>
                             <td>{{ $pharmacy->ProposedDateTime ? \Carbon\Carbon::parse($pharmacy->ProposedDateTime)->format('d-m-Y H:i') : '-' }}
                             </td>
@@ -179,9 +178,11 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
-        let timeOrder = {!! json_encode($timeRespons) !!};
-        let dataFromPHP = {!! json_encode($pharmacies) !!};
+        //Get data dari DashboardController
+        let timeOrder = @json($timeRespons);
+        let dataFromPHP = @json($pharmacies);
 
+        //Mendapatkan selisih waktu dengan format tanggal dan waktu terpisah
         function setAndGetDiffDateTime(date, time, earlyTime) {
             // Memecah string jam dan menit dari data time
             const [hours, minutes] = time.split(':').map(Number);
@@ -199,6 +200,7 @@
             return diffTime;
         }
 
+        //Mengkonversi tanggal dan waktu yang terpisah menjadi satu
         function convertDateTime(date, time) {
             let hours = 0,
                 minutes = 0,
@@ -220,6 +222,7 @@
             return combinedDateTime;
         }
 
+        //Mengconvert time ke string dengan format hh:mm:ss
         function getTimeString(currentTime, startTime, diffTimeRunning) {
             let timeRunning,
                 hours,
@@ -239,9 +242,11 @@
             return timeString;
         }
 
+        //Iterasi data dari controller
         dataFromPHP.data.forEach((data, index) => {
             let i = index + 1;
 
+            //Fungsi update progress bar
             function updateProgressBar() {
                 let standarTime = 0;
                 if (data.JenisResep === 'RACIKAN') {
@@ -250,34 +255,41 @@
                     standarTime = timeOrder.nonRacikan; // standart time untuk resep jenis non racikan 30 menit
                 }
 
-                let diffTime = 0; // Selisih waktu
-                let diffTimeRunning = 0; // Selisih waktu
+                let diffTime = 0; // Selisih waktu untuk progress bar
+                let diffTimeRunning = 0; // Selisih waktu untuk time running
                 let percentageElapsedTime = 0; // Persentase waktu yang sudah berjalan
 
                 let startTime = null; // Waktu mulai order
                 let currentTime = null; // Waktu live saat ini
                 let elapsedTime = 0; // Waktu yang sudah berjalan
 
-                currentTime = new Date();
+                currentTime = new Date(); //Ambil waktu saat ini
 
+                //cek apakah data SendOrderDateTime tidak kosong
                 if (data.SendOrderDateTime !== null) {
                     const sendOrderDateTimeObject = convertDateTime(data.SendOrderDateTime, '');
+                    //set start time dengan sendOrderDateTime
                     startTime = sendOrderDateTimeObject;
 
+                    // Jika date time closed order sudah terisi, maka hitung selisih waktu
                     if (data.ClosedDateFarmasi !== null && data.ClosedTimeFarmasi !== '') {
                         diffTime = setAndGetDiffDateTime(data.ClosedDateFarmasi, data.ClosedTimeFarmasi,
                             sendOrderDateTimeObject);
                         diffTimeRunning = setAndGetDiffDateTime(data.ClosedDateFarmasi, data.ClosedTimeFarmasi,
                             sendOrderDateTimeObject);
+                        // Jika selisih waktu kurang dari standar waktu, maka set selisih waktu dengan standar waktu
                         if (diffTime < standarTime) {
                             diffTime = standarTime;
                         }
-                    } else if (data.ProposedDateTime !== null) {
+                    }
+                    //Jika close date time masih kosong, tetapi proposed date time tidak kosong maka hitung selisih waktu
+                    else if (data.ProposedDateTime !== null) {
                         proposedDateTimeObject = convertDateTime(data.ProposedDateTime, '');
                         diffTime = proposedDateTimeObject - sendOrderDateTimeObject;
                     }
-
-                } else if (data.ProposedDateTime !== null) {
+                }
+                //Jika sendOrderDateTime kosong, tetapi proposedDateTime tidak kosong
+                else if (data.ProposedDateTime !== null) {
                     const proposedDateTimeObject = convertDateTime(data.ProposedDateTime, '');
                     startTime = proposedDateTimeObject
                     if (data.ClosedDateFarmasi !== null && data.ClosedTimeFarmasi !== '') {
@@ -292,19 +304,20 @@
 
                 }
 
+                // Jika semua waktu masih kosong, maka set waktu berjalan = 00:00:00
                 if (data.SendOrderDateTime === null &&
                     data.ClosedDateFarmasi === null && data.ClosedTimeFarmasi === '' &&
                     data.ProposedDateTime === null) {
                     document.getElementById(`time-running${i}`).innerText = '00:00:00';
                 }
-                // Jika date time closed order masih kosong, maka hitung waktu berjalan
+                // Tetapi jika hanya date time closed order yang masih kosong, maka hitung waktu berjalan
                 else if (data.ClosedDateFarmasi === null && data.ClosedTimeFarmasi === '') {
                     elapsedTime = currentTime - startTime;
-                    // Jika date time closed order sudah terisi, maka hitung waktu berjalan dari waktu start ke closed order
-                    // Tampilkan waktu yang sedang berjalan
                     let timeString = getTimeString(currentTime, startTime, 0);
                     document.getElementById(`time-running${i}`).innerText = timeString;
-                } else {
+                }
+                // Jika date time closed order sudah terisi, maka hitung waktu berjalan dari waktu start ke closed order
+                else {
                     elapsedTime = diffTime;
                     let timeString = getTimeString(0, 0, diffTimeRunning);
                     document.getElementById(`time-running${i}`).innerText = timeString;
@@ -316,30 +329,36 @@
                 // Ambil elemen dengan ID "progress-bar" ke-i
                 const textBar = document.getElementById(`text-bar${i}`);
 
-                //Jika setiap waktu masing-masing data masih kosong, maka progress bar = 0%
+                //Jika setiap waktu masing-masing data masih kosong, maka set progress bar = 0%
                 if (data.SendOrderDateTime === null &&
                     data.ClosedDateFarmasi === null && data.ClosedTimeFarmasi === '' &&
                     data.ProposedDateTime === null) {
                     textBar.innerText = '0%';
                     progressBar.style.display = "none";
-                    //Jika sudah ada waktu terisi, maka hitung persentase waktu yang sudah berjalan
-                } else {
+                }
+                // Jika sudah ada waktu terisi, maka hitung persentase waktu yang sudah berjalan
+                else {
+                    // Hitung persentase waktu yang sudah berjalan
                     percentageElapsedTime = (elapsedTime / standarTime) * 100;
+                    //Jika persentase waktu yang sudah berjalan masih <= 100 maka tampilkan style progress bar sesuai persentase
                     if (percentageElapsedTime <= 100) {
                         progressBar.style.width = percentageElapsedTime + '%';
-                    } else {
+                    }
+                    // Jika persentase waktu yang sudah berjalan lebih dari 100, maka set style progress bar = 100%
+                    else {
                         progressBar.style.width = '100%';
                     }
                     progressBar.innerText = percentageElapsedTime.toFixed(2) + '%';
-                    // textBar.innerText = percentageElapsedTime.toFixed(2) + '%';
                     textBar.style.display = "none";
                 }
 
-                // Periksa jika nilai variabel lebih dari 100
+                // Periksa jika nilai persentase selisih waktu lebih dari 100
                 if (percentageElapsedTime > 100) {
-                    // Jika ya, ubah kelasnya menjadi "progress-bar bg-danger"
+                    // Jika ya, ubah warna bar menjadi merah
                     progressBar.className = "progress-bar bg-danger";
+                    // Periksa jika nilai persentase selisih waktu = 100
                 } else if (percentageElapsedTime === 100) {
+                    // Jika ya, ubah warna bar menjadi hijau
                     progressBar.className = "progress-bar bg-success";
                 }
 
@@ -353,16 +372,22 @@
         });
     </script>
     <script>
+        // Get data date range dari controller
         let date_range_str = @json($date);
 
+        //Convert dan pecah menjadi 2 bagian yaitu start_date dan end_date
         if (date_range_str !== null) {
+            //Cek apakah di dalam string mengandung 'to'
             if (date_range_str.includes('to')) {
                 const [start_date_str, end_date_str] = date_range_str.split(' to ');
 
                 // Mengonversi string menjadi objek Date menggunakan Moment.js
                 start_date = moment(start_date_str, "DD-MM-YYYY").toDate();
                 end_date = moment(end_date_str, "DD-MM-YYYY").toDate();
-            } else {
+            }
+            //Jika tidak mengandung 'to' maka date_range_str hanya mengandung current date,
+            //Lalu convert menjadi objek Date
+            else {
                 // Mengonversi string menjadi objek Date menggunakan Moment.js
                 start_date = moment(date_range_str, "DD-MM-YYYY").toDate();
                 end_date = moment(date_range_str, "DD-MM-YYYY").toDate();
@@ -372,11 +397,11 @@
             end_date = new Date();
         }
 
-        // Inisialisasi Flatpickr
+        // Inisialisasi Flatpickr Menjadi Range Date
         flatpickr('.flatpickr-date', {
             mode: "range",
             dateFormat: "d-m-Y",
-            defaultDate: [start_date, end_date], // Mengatur defaultDate ke hari ini dan besok
+            defaultDate: [start_date, end_date],
             maxDate: moment().endOf('day').toDate(),
             onChange: function(selectedDates, dateStr, instance) {
                 const start = selectedDates[0];

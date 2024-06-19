@@ -37,7 +37,36 @@
     <x-layouts.navbar :$active />
     @yield('container')
     <x-layouts.footer />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function padZero(num) {
+            return num.toString().padStart(2, '0');
+        }
+
+        function formatDate(date) {
+            const day = padZero(date.getDate());
+            const monthNames = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            const month = monthNames[date.getMonth()];
+            const year = date.getFullYear();
+            const hours = padZero(date.getHours());
+            const minutes = padZero(date.getMinutes());
+            const seconds = padZero(date.getSeconds());
+
+            return `${day} ${month} ${year}, ${hours}:${minutes}:${seconds}`;
+        }
+
+        function updateDateTime() {
+            const dateTimeElement = document.getElementById('current-datetime');
+            const now = new Date();
+            dateTimeElement.innerHTML = formatDate(now);
+        }
+
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+    </script>
 </body>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 </html>

@@ -13,11 +13,13 @@ class Pharmacy extends Model
 
     use HasFactory;
 
-    // $customerTypes = ['BPJS - Kemenkes', 'Pribadi', 'Rekanan', 'Karyawan - FASKES']; // Daftar CustomerType
-    private $listLocationID = ['11', '12', '163']; // Daftar LocationID
-    private $listCustomerTypeID = ['X004^500', 'X004^999', 'X004^100',  'X004^250']; // Daftar CustomerType
-
-    function getBottomFiveNonRacikanRajal($startDate, $endDate, $location)
+    /**
+     * Get five oldest order data when type is Non-Racikan
+     *
+     * @param string $startDate, $endDate, $location
+     * @return array
+     */
+    function getFiveOldestOrderNonRacikanRajal($startDate, $endDate, $location)
     {
         $queryNonRacikan =
             DB::table('PrescriptionOrderHd as poh')
@@ -114,7 +116,13 @@ class Pharmacy extends Model
         return $results;
     }
 
-    function getBottomFiveRacikanRajal($startDate, $endDate, $location)
+    /**
+     * Get five oldest order data when type is Racikan
+     *
+     * @param string $startDate, $endDate, $location
+     * @return array
+     */
+    function getFiveOldestOrderRacikanRajal($startDate, $endDate, $location)
     {
         $queryRacikan = DB::table('PrescriptionOrderHd as poh')
             ->distinct()
@@ -187,6 +195,13 @@ class Pharmacy extends Model
         return $results;
     }
 
+    /**
+     * Get list order when location in Dispensary Rawat Jalan
+     *
+     * @param string $startDate, $endDate, $customerType, $location, $statusOrder, $search, $sortBy, $jenisOrder
+     * @param int $perPage
+     * @return array
+     */
     function getListOrderRajal(
         $startDate,
         $endDate,
@@ -198,279 +213,6 @@ class Pharmacy extends Model
         $sortBy,
         $jenisOrder,
     ) {
-        // $query = "
-        //     DECLARE @FromDate DATE, @ToDate DATE, @Kelas AS VARCHAR(5), @Lokasi AS VARCHAR(5)
-        //     SET @FromDate 	= ? ;
-        //     SET @ToDate 	= ? ;
-        //     SET @Lokasi		= '11';  -- GANTI DISINI SESUAI DGN FILTER Lokasi
-        //     SET @Kelas		= 'RJ'   -- GANTI DISINI SESUAI DGN FILTER Kelas
-
-        //     --- LocationID
-        //         -- 11	FARMASI RAJAL
-        //         -- 12	FARMASI RANAP
-        //         -- 163	FARMASI IGD
-
-        //    --- GCCustomerType
-        //         -- X004^500 BPJS - Kemenkes
-        //         -- X004^100 Rekanan
-        //         -- X004^999 Pribadi
-        //         -- X004^250 Karyawan - FASKES
-        //         -- X004^201 Yayasan
-        //         -- X004^200 Perusahaan
-
-        //     -- Jika pasien BPJS tidak di propose Kasir untuk billingnya,
-        //     -- di kerjakan terakhir
-
-        //     SELECT
-        //         -- TOP 100
-        //         po.[LocationID]
-        //         ,loc.LocationName
-        //         ,vr.ServiceUnitName
-        //             -- ,po.[PrescriptionOrderID]
-        //         ,po.[PrescriptionOrderNo]
-        //         ,po.[PrescriptionDate]
-        //         ,po.[PrescriptionTime]
-        //         ,vr.[RegistrationNo]
-        //         ,vr.MedicalNo
-        //         ,vr.PatientName
-        //         ,vr.CustomerType
-        //         ,vr.VisitID
-        //         ,vr.GCRegistrationStatus
-        //         ,sc4.[StandardCodeName] as 'Status Registrasi'
-        //         ,po.[GCPrescriptionType]
-        //         ,sc1.[StandardCodeName] as 'Jenis Resep'
-        //         ,po.[ParamedicID]
-        //         ,po.[ClassID]
-        //         ,po.[DispensaryServiceUnitID]
-        //         ,po.[GCTransactionStatus]
-        //         ,sc3.[StandardCodeName] as 'Status Transaksi'
-        //         ,po.[GCOrderStatus]
-        //         ,sc3.[StandardCodeName] as 'Status Order'
-        //         ,po.[SendOrderDateTime]
-        //         ,po.[SendOrderBy]
-        //         ,po.[StartDate] as 'StartDateFarmasi'
-        //         ,po.[StartTime] as 'StartTimeFarmasi'
-        //         --,po.[StartByName]
-        //         ,po.[CompleteDate] as 'CompleteDateFarmasi'
-        //         ,po.[CompleteTime] as 'CompleteTimeFarmasi'
-        //         ,po.[CompleteByName]
-        //         ,po.[ClosedDate] as 'ClosedDateFarmasi'
-        //         ,po.[ClosedTime] as 'ClosedTimeFarmasi'
-        //         ,po.[ClosedByName]
-        //         ,po.[Remarks]
-        //         ,po.[CreatedBy]
-        //         ,po.[CreatedDate]
-        //         ,po.[LastUpdatedBy]
-        //         ,po.[LastUpdatedDate]
-        //         ,po.[ProposedBy]
-        //         ,us.[UserName] as 'Petugas'
-        //     FROM [MS_RSDOSOBA].[dbo].[PrescriptionOrderHd] po
-        //     LEFT JOIN [vRegistration]   vr	WITH (NOLOCK) ON po.VisitID = vr.VisitID and vr.GCRegistrationStatus <> 'X020^006'
-        //     LEFT JOIN [Location]		loc WITH (NOLOCK) ON po.LocationID = loc.LocationID and loc.IsDeleted=0
-        //     LEFT JOIN [StandardCode]	sc1	WITH (NOLOCK) ON po.[GCPrescriptionType]=sc1.StandardCodeID
-        //     LEFT JOIN [StandardCode]	sc2	WITH (NOLOCK) ON po.[GCOrderStatus]=sc2.StandardCodeID
-        //     LEFT JOIN [StandardCode]	sc3	WITH (NOLOCK) ON po.[GCTransactionStatus]=sc3.StandardCodeID
-        //     LEFT JOIN [StandardCode]	sc4	WITH (NOLOCK) ON vr.[GCRegistrationStatus]=sc4.StandardCodeID
-        //     LEFT JOIN [User]			us	WITH (NOLOCK) ON po.[ProposedBy]=us.UserID
-        //     WHERE po.[PrescriptionDate] BETWEEN @FromDate AND @ToDate
-        //     and po.[LocationID]=@Lokasi
-        //     and po.[GCTransactionStatus]<>'X121^999'
-        //     -- and po.[PrescriptionOrderNo] in ('OPM/20240520/00081','FAM/20240520/00008')
-        //     -- and vr.[RegistrationNo] in ('OPM/20240520/00081')
-        //     -- order by vr.ServiceUnitName,po.[PrescriptionDate],po.[PrescriptionTime],po.[DispensaryServiceUnitID] ,po.[LocationID]
-        //     order by po.[CreatedDate] desc
-        //     ";
-
-        // $query = "
-        //     SELECT
-        //         po.[LocationID],
-        //         loc.LocationName,
-        //         vr.ServiceUnitName,
-        //         po.[PrescriptionOrderNo],
-        //         po.[PrescriptionDate],
-        //         po.[PrescriptionTime],
-        //         vr.[RegistrationNo],
-        //         vr.MedicalNo,
-        //         vr.PatientName,
-        //         vr.CustomerType,
-        //         vr.VisitID,
-        //         vr.GCRegistrationStatus,
-        //         sc4.[StandardCodeName] AS 'Status Registrasi',
-        //         po.[GCPrescriptionType],
-        //         sc1.[StandardCodeName] AS 'Jenis Resep',
-        //         po.[ParamedicID],
-        //         po.[ClassID],
-        //         po.[DispensaryServiceUnitID],
-        //         po.[GCTransactionStatus],
-        //         sc3.[StandardCodeName] AS 'Status Transaksi',
-        //         po.[GCOrderStatus],
-        //         sc3.[StandardCodeName] AS 'Status Order',
-        //         po.[SendOrderDateTime],
-        //         po.[SendOrderBy],
-        //         po.[StartDate] AS 'StartDateFarmasi',
-        //         po.[StartTime] AS 'StartTimeFarmasi',
-        //         po.[CompleteDate] AS 'CompleteDateFarmasi',
-        //         po.[CompleteTime] AS 'CompleteTimeFarmasi',
-        //         po.[CompleteByName],
-        //         po.[ClosedDate] AS 'ClosedDateFarmasi',
-        //         po.[ClosedTime] AS 'ClosedTimeFarmasi',
-        //         po.[ClosedByName],
-        //         po.[Remarks],
-        //         po.[CreatedBy],
-        //         po.[CreatedDate],
-        //         po.[LastUpdatedBy],
-        //         po.[LastUpdatedDate],
-        //         po.[ProposedBy],
-        //         us.[UserName] AS 'Petugas'
-        //     FROM [MS_RSDOSOBA].[dbo].[PrescriptionOrderHd] po
-        //     LEFT JOIN [vRegistration] vr ON po.VisitID = vr.VisitID AND vr.GCRegistrationStatus <> 'X020^006'
-        //     LEFT JOIN [Location] loc ON po.LocationID = loc.LocationID AND loc.IsDeleted = 0
-        //     LEFT JOIN [StandardCode] sc1 ON po.[GCPrescriptionType] = sc1.StandardCodeID
-        //     LEFT JOIN [StandardCode] sc2 ON po.[GCOrderStatus] = sc2.StandardCodeID
-        //     LEFT JOIN [StandardCode] sc3 ON po.[GCTransactionStatus] = sc3.StandardCodeID
-        //     LEFT JOIN [StandardCode] sc4 ON vr.[GCRegistrationStatus] = sc4.StandardCodeID
-        //     LEFT JOIN [User] us ON po.[ProposedBy] = us.UserID
-        //     WHERE po.[PrescriptionDate] BETWEEN ? AND ?
-        //     AND vr.CustomerType = ?
-        //     AND po.[LocationID] = '11' -- GANTI DISINI SESUAI DGN FILTER Lokasi
-        //     AND po.[GCTransactionStatus] <> 'X121^999'
-        //     ORDER BY po.[CreatedDate] DESC
-        // ";
-
-        // $results = DB::select($query, [$startDate, $endDate, $customerType]);
-
-        // $query = "
-        // DECLARE @tglAwal DATE='20240501',
-        // @tglAkhir DATE='20240531',
-        // @tglOrder DATE='20240604'
-
-        // --RACIKAN
-        // SELECT DISTINCT
-        //     poh.DispensaryServiceUnitID, -- id farmasi = id table healthcare service unit
-        //     sud.ServiceUnitName 'Dispensary', --nama farmasi
-        //     su.ServiceUnitName 'Poli', --poli
-        //     r.RegistrationNo, --no registrasi px
-        //     p.MedicalNo, --no rm px
-        //     p.FullName 'PatientName', --nama px
-        //     --pm.ParamedicID, --id dr yg meresepkan
-        //     pm.FullName 'Nama Dokter', --nama dr yg meresepkan
-        //     --poh.CreatedBy, --id user yg membuat order
-        //     ua.FullName 'Orderer', --nama user yg membuat order
-        //     sc2.StandardCodeName 'OrderStatus', --status order
-        //     poh.PrescriptionOrderID, --id order resep
-        //     poh.PrescriptionOrderNo, --no order resep
-        //     pch.TransactionID, --id transaksi resep
-        //     pch.TransactionNo, --no transaksi resep
-        //     poh.SendOrderDateTime, --tgl&jam order resep dikirim
-        //     pch.ProposedDate as ProposedDateTime, --tgl&jam farmasi mulai menyiapkan obat
-        //     --pch.ProposedBy, --id user yg propose
-        //     ua2.FullName 'User Propose', --nama user yg propose
-        //     poh.ClosedDate as ClosedDateFarmasi, --tgl obat siap diserahkan (farmasi klik sudah diserahkan di medinfras)
-        //     poh.ClosedTime as ClosedTimeFarmasi, --tgl obat siap diserahkan (farmasi klik sudah diserahkan di medinfras)
-        //     bp.BusinessPartnerID, --id penjamin
-        //     c.GCCustomerType, --standard code id tipe customer
-        //     sc.StandardCodeName, --nama tipe customer
-        //     bp.BusinessPartnerName, --nama penjamin
-        //     pch.TotalAmount, --nominal resep, jml 0 artinya tidak diambil pasien
-        //     sc3.StandardCodeName 'StatusTransaksi', --status transaksi
-        //     'RACIKAN' AS 'JenisResep'
-        // FROM PrescriptionOrderHd poh
-        //     JOIN PrescriptionOrderDt pod ON poh.PrescriptionOrderID = pod.PrescriptionOrderID
-        //     FULL OUTER JOIN PatientChargesHd pch ON poh.PrescriptionOrderID = pch.PrescriptionOrderID AND pch.GCTransactionStatus NOT IN ('X121^999') --transaksi tdk divoid
-        //     JOIN ConsultVisit cv ON poh.VisitID =  cv.VisitID
-        //     JOIN Registration r ON cv.RegistrationID = r.RegistrationID
-        //     JOIN Patient p ON r.MRN = p.MRN
-        //     JOIN BusinessPartners bp ON r.BusinessPartnerID = bp.BusinessPartnerID
-        //     JOIN Customer c ON bp.BusinessPartnerID = c.BusinessPartnerID
-        //     JOIN StandardCode sc ON c.GCCustomerType = sc.StandardCodeID
-        //     JOIN StandardCode sc2 ON poh.GCTransactionStatus = sc2.StandardCodeID --status order
-        //     FULL OUTER JOIN StandardCode sc3 ON pch.GCTransactionStatus = sc3.StandardCodeID --status transaksi
-        //     JOIN HealthcareServiceUnit hsu ON cv.HealthcareServiceUnitID = hsu.HealthcareServiceUnitID
-        //     JOIN ServiceUnitMaster su ON hsu.ServiceUnitID = su.ServiceUnitID
-        //     JOIN HealthcareServiceUnit hsud ON poh.DispensaryServiceUnitID = hsud.HealthcareServiceUnitID
-        //     JOIN ServiceUnitMaster sud ON hsud.ServiceUnitID = sud.ServiceUnitID
-        //     JOIN ParamedicMaster pm ON poh.ParamedicID = pm.ParamedicID
-        //     JOIN UserAttribute ua ON poh.CreatedBy = ua.UserID --user yg buat order
-        //     FULL OUTER JOIN UserAttribute ua2 ON pch.ProposedBy = ua2.UserID --user yg propose transaksi
-        // WHERE poh.PrescriptionDate = @tglOrder  -- filter tgl order --> poh.PrescriptionDate BETWEEN @tglAwal AND @tglAkhir
-        //     AND poh.DispensaryServiceUnitID = 100 --filter lokasi farmasi (ambil dari DispensaryServiceUnitID/HealthcareServiceUnitID)  100 = FARMASI RAWAT JALAN, 101 = FARMASI RAWAT INAP, 133 = FARMASI RAWAT INAP NON UDD, 166 = FARMASI IGD
-        //     AND c.GCCustomerType = 'X004^999' --filter tipe penjamin X004^250 = Karyawan - FASKES, X004^100 = Rekanan, X004^999 = Pribadi, X004^300 = Pemerintah, X004^500 = BPJS - Kemenkes, X004^400 = Rumah Sakit, X004^200 = Perusahaan, X004^201 = Yayasan, X004^251 = Karyawan - PTGJ
-        //     AND poh.GCTransactionStatus NOT IN ('X121^999') --order tdk divoid
-        //     AND pod.IsCompound = 1
-
-        // UNION ALL
-
-        // --NON RACIKAN
-        // SELECT DISTINCT
-        //     poh.DispensaryServiceUnitID, -- id farmasi = id table healthcare service unit
-        //     sud.ServiceUnitName 'Dispensary', --nama farmasi
-        //     su.ServiceUnitName 'Poli', --poli
-        //     r.RegistrationNo, --no registrasi px
-        //     p.MedicalNo, --no rm px
-        //     p.FullName 'PatientName', --nama px
-        //     --pm.ParamedicID, --id dr yg meresepkan
-        //     pm.FullName 'Nama Dokter', --nama dr yg meresepkan
-        //     --poh.CreatedBy, --id user yg membuat order
-        //     ua.FullName 'User Buat', --nama user yg membuat order
-        //     sc2.StandardCodeName 'OrderStatus', --status order
-        //     poh.PrescriptionOrderID, --id order resep
-        //     poh.PrescriptionOrderNo, --no order resep
-        //     pch.TransactionID, --id transaksi resep
-        //     pch.TransactionNo, --no transaksi resep
-        //     poh.SendOrderDateTime, --tgl&jam order resep dikirim
-        //     pch.ProposedDate as ProposedDateTime, --tgl&jam farmasi mulai menyiapkan obat
-        //     --pch.ProposedBy, --id user yg propose
-        //     ua2.FullName 'User Propose', --nama user yg propose
-        //     poh.ClosedDate as ClosedDateFarmasi, --tgl obat siap diserahkan (farmasi klik sudah diserahkan di medinfras)
-        //     poh.ClosedTime as ClosedTimeFarmasi, --tgl obat siap diserahkan (farmasi klik sudah diserahkan di medinfras)
-        //     bp.BusinessPartnerID, --id penjamin
-        //     c.GCCustomerType, --standard code id tipe customer
-        //     sc.StandardCodeName, --nama tipe customer
-        //     bp.BusinessPartnerName, --nama penjamin
-        //     pch.TotalAmount, --nominal resep, jml 0 artinya tidak diambil pasien
-        //     sc3.StandardCodeName 'StatusTransaksi', --status transaksi
-        //     'NON RACIKAN' AS 'JenisResep'
-        // FROM PrescriptionOrderHd poh
-        //     ----JOIN PrescriptionOrderDt pod ON poh.PrescriptionOrderID = pod.PrescriptionOrderID
-        //     FULL OUTER JOIN PatientChargesHd pch ON poh.PrescriptionOrderID = pch.PrescriptionOrderID AND pch.GCTransactionStatus NOT IN ('X121^999') --transaksi tdk divoid
-        //     JOIN ConsultVisit cv ON poh.VisitID =  cv.VisitID
-        //     JOIN Registration r ON cv.RegistrationID = r.RegistrationID
-        //     JOIN Patient p ON r.MRN = p.MRN
-        //     JOIN BusinessPartners bp ON r.BusinessPartnerID = bp.BusinessPartnerID
-        //     JOIN Customer c ON bp.BusinessPartnerID = c.BusinessPartnerID
-        //     JOIN StandardCode sc ON c.GCCustomerType = sc.StandardCodeID
-        //     JOIN StandardCode sc2 ON poh.GCTransactionStatus = sc2.StandardCodeID --status order
-        //     FULL OUTER JOIN  StandardCode sc3 ON pch.GCTransactionStatus = sc3.StandardCodeID --status transaksi
-        //     JOIN HealthcareServiceUnit hsu ON cv.HealthcareServiceUnitID = hsu.HealthcareServiceUnitID
-        //     JOIN ServiceUnitMaster su ON hsu.ServiceUnitID = su.ServiceUnitID
-        //     JOIN HealthcareServiceUnit hsud ON poh.DispensaryServiceUnitID = hsud.HealthcareServiceUnitID
-        //     JOIN ServiceUnitMaster sud ON hsud.ServiceUnitID = sud.ServiceUnitID
-        //     JOIN ParamedicMaster pm ON poh.ParamedicID = pm.ParamedicID
-        //     JOIN UserAttribute ua ON poh.CreatedBy = ua.UserID --user yg buat order
-        //     FULL OUTER JOIN UserAttribute ua2 ON pch.ProposedBy = ua2.UserID --user yg propose transaksi
-        // WHERE poh.PrescriptionDate = @tglOrder  -- filter tgl order --> poh.PrescriptionDate BETWEEN @tglAwal AND @tglAkhir
-        //     AND poh.DispensaryServiceUnitID = 100 --filter lokasi farmasi (ambil dari DispensaryServiceUnitID/HealthcareServiceUnitID)  100 = FARMASI RAWAT JALAN, 101 = FARMASI RAWAT INAP, 133 = FARMASI RAWAT INAP NON UDD, 166 = FARMASI IGD
-        //     AND c.GCCustomerType = 'X004^999' --filter tipe penjamin X004^250 = Karyawan - FASKES, X004^100 = Rekanan, X004^999 = Pribadi, X004^300 = Pemerintah, X004^500 = BPJS - Kemenkes, X004^400 = Rumah Sakit, X004^200 = Perusahaan, X004^201 = Yayasan, X004^251 = Karyawan - PTGJ
-        //     AND poh.GCTransactionStatus NOT IN ('X121^999') --order tdk divoid
-        //     AND poh.PrescriptionOrderID NOT IN (SELECT DISTINCT poh.PrescriptionOrderID FROM PrescriptionOrderHd poh
-        //         JOIN PrescriptionOrderDt pod ON poh.PrescriptionOrderID = pod.PrescriptionOrderID
-        //         FULL OUTER JOIN PatientChargesHd pch ON poh.PrescriptionOrderID = pch.PrescriptionOrderID AND pch.GCTransactionStatus NOT IN ('X121^999') --transaksi tdk divoid
-        //         JOIN ConsultVisit cv ON poh.VisitID =  cv.VisitID
-        //         JOIN Registration r ON cv.RegistrationID = r.RegistrationID
-        //         JOIN BusinessPartners bp ON r.BusinessPartnerID = bp.BusinessPartnerID
-        //         JOIN Customer c ON bp.BusinessPartnerID = c.BusinessPartnerID
-        //         WHERE poh.PrescriptionDate = @tglOrder  -- filter tgl order --> poh.PrescriptionDate BETWEEN @tglAwal AND @tglAkhir
-        //         AND poh.DispensaryServiceUnitID = 100
-        //         AND c.GCCustomerType = 'X004^999'
-        //         AND poh.GCTransactionStatus NOT IN ('X121^999')
-        //         AND pod.IsCompound = 1)
-        // ORDER BY poh.SendOrderDateTime
-        // ";
-
-        // $results = DB::select($query);
-
-        // $dispensaryServiceUnitID = 100; // contoh ID, ini bisa diganti dengan input dari pengguna
-        // $customerType = 'X004^500'; // contoh tipe penjamin, ini bisa diganti dengan input dari pengguna
         $queryRacikan = DB::table('PrescriptionOrderHd as poh')
             ->select(DB::raw("
             DISTINCT poh.DispensaryServiceUnitID,
@@ -530,27 +272,19 @@ class Pharmacy extends Model
             ->whereNot('pch.TotalAmount', '=', '.00')
             ->whereNotIn('r.MRN', [10, 527556])
             ->whereNotIn('poh.GCTransactionStatus', ['X121^999']);
-        // ->where('pod.IsCompound', 1);
-        // ->whereNot('sc3.StandardCodeName', '=', 'CLOSED')
-        // ->whereNull('poh.ClosedDate')
 
+        //Cek apakah ada paramter statusOrder, 1 = Open, 2 = Closed, all = semua
         if ($statusOrder !== 'all') {
             if ($statusOrder === '2') {
                 $queryRacikan
-                    // ->whereNot('sc3.StandardCodeName', '=', 'CLOSED')
-                    // ->WhereNot('sc2.StandardCodeName', '=', 'PROCESSED')
                     ->whereNull('poh.ClosedDate');
-            } else { //selesai
+            } else {
                 $queryRacikan
-                    ->where(function ($queryRacikan) {
-                        $queryRacikan
-                            ->WhereNotNull('poh.ClosedDate');
-                        // ->orWhere('sc3.StandardCodeName', '=', 'CLOSED')
-                        // ->orWhere('sc2.StandardCodeName', '=', 'PROCESSED');
-                    });
+                    ->WhereNotNull('poh.ClosedDate');
             }
         }
 
+        //Cek apakah ada parameter customerType, 1 = JKN/BPJS, 2 = Personal, 3 = Asuransi
         if ($customerType === '1') {
             $queryRacikan->where('c.GCCustomerType', '=', 'X004^500');
         } else if ($customerType === '2') {
@@ -561,6 +295,7 @@ class Pharmacy extends Model
             $queryRacikan->whereIn('c.GCCustomerType', ['X004^250', 'X004^400', 'X004^201']);
         }
 
+        //Cek apakah ada parameter search
         if (!empty($search)) {
             $queryRacikan->where(function ($query) use ($search) {
                 $query
@@ -570,6 +305,7 @@ class Pharmacy extends Model
             });
         }
 
+        //Filter berdasarkan jenis order = racikan
         $queryRacikan->where('pod.IsCompound', 1);
 
         // Query untuk resep non-racikan
@@ -630,12 +366,11 @@ class Pharmacy extends Model
             ->leftJoin('UserAttribute as ua2', 'pch.ProposedBy', '=', 'ua2.UserID')
             ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
             ->where('poh.DispensaryServiceUnitID', $location)
-            ->whereNot('pch.TotalAmount', '=', '.00')
-            ->whereNotIn('r.MRN', [10, 527556])
-            // ->whereNot('sc3.StandardCodeName', '=', 'CLOSED')
-            // ->whereNull('poh.ClosedDate')
-            ->whereNotIn('poh.GCTransactionStatus', ['X121^999'])
+            ->whereNot('pch.TotalAmount', '=', '.00') //Tidak di ambil
+            ->whereNotIn('r.MRN', [10, 527556]) // MRN 10 dan 527556 adalah MRN dari Klink Teduh
+            ->whereNotIn('poh.GCTransactionStatus', ['X121^999']) //Status Transaksi di void
             ->whereNotExists(function ($query) use ($startDate, $endDate, $location, $customerType, $statusOrder) {
+                //Cari order yang tidak mengandung racikan
                 $query->select(DB::raw(1))
                     ->from('PrescriptionOrderHd as poh2')
                     ->join('PrescriptionOrderDt as pod', 'poh2.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
@@ -653,8 +388,6 @@ class Pharmacy extends Model
                     ->whereNot('pch.TotalAmount', '=', '.00')
                     ->whereNotIn('r.MRN', [10, 527556])
                     ->where('pod.IsCompound', 1)
-                    // ->whereNot('sc3.StandardCodeName', '=', 'CLOSED')
-                    // ->whereNull('poh.ClosedDate')
                     ->whereRaw('poh2.PrescriptionOrderID = poh.PrescriptionOrderID');
 
                 if ($customerType === '1') {
@@ -670,17 +403,9 @@ class Pharmacy extends Model
                 if ($statusOrder !== 'all') {
                     if ($statusOrder === '2') {
                         $query
-                            // ->whereNot('sc3.StandardCodeName', '=', 'CLOSED')
-                            // ->WhereNot('sc2.StandardCodeName', '=', 'PROCESSED')
                             ->whereNull('poh.ClosedDate');
                     } else {
-                        $query
-                            ->where(function ($query) {
-                                $query
-                                    ->whereNotNull('poh.ClosedDate');
-                                // ->orWhere('sc3.StandardCodeName', '=', 'CLOSED')
-                                // ->orWhere('sc2.StandardCodeName', '=', 'PROCESSED');
-                            });
+                        $query->whereNotNull('poh.ClosedDate');
                     }
                 }
                 if (!empty($search)) {
@@ -697,16 +422,9 @@ class Pharmacy extends Model
             if ($statusOrder === '2') {
                 $queryNonRacikan
                     ->whereNull('poh.ClosedDate');
-                // ->whereNot('sc3.StandardCodeName', '=', 'CLOSED')
-                // ->WhereNot('sc2.StandardCodeName', '=', 'PROCESSED');
             } else {
                 $queryNonRacikan
-                    ->where(function ($queryNonRacikan) {
-                        $queryNonRacikan
-                            ->whereNotNull('poh.ClosedDate');
-                        // ->orWhere('sc3.StandardCodeName', '=', 'CLOSED')
-                        // ->orWhere('sc2.StandardCodeName', '=', 'PROCESSED');
-                    });
+                    ->WhereNotNull('poh.ClosedDate');
             }
         }
 
@@ -761,87 +479,16 @@ class Pharmacy extends Model
             ]);
 
         return $results;
-
-        // $query = DB::table('PrescriptionOrderHd as po')
-        //     ->leftJoin('vRegistration as vr', function ($join) {
-        //         $join->on('po.VisitID', '=', 'vr.VisitID')
-        //             ->where('vr.GCRegistrationStatus', '<>', 'X020^006');
-        //     })
-        //     ->leftJoin('Location as loc', function ($join) {
-        //         $join->on('po.LocationID', '=', 'loc.LocationID')
-        //             ->where('loc.IsDeleted', '=', 0);
-        //     })
-        //     ->leftJoin('StandardCode as sc1', 'po.GCPrescriptionType', '=', 'sc1.StandardCodeID')
-        //     ->leftJoin('StandardCode as sc2', 'po.GCOrderStatus', '=', 'sc2.StandardCodeID')
-        //     ->leftJoin('StandardCode as sc3', 'po.GCTransactionStatus', '=', 'sc3.StandardCodeID')
-        //     ->leftJoin('StandardCode as sc4', 'vr.GCRegistrationStatus', '=', 'sc4.StandardCodeID')
-        //     ->leftJoin('User as us', 'po.ProposedBy', '=', 'us.UserID')
-        //     ->select(
-        //         'po.LocationID',
-        //         'loc.LocationName',
-        //         'vr.ServiceUnitName',
-        //         'po.PrescriptionOrderNo',
-        //         'po.PrescriptionDate',
-        //         'po.PrescriptionTime',
-        //         'vr.RegistrationNo',
-        //         'vr.MedicalNo',
-        //         'vr.PatientName',
-        //         'vr.CustomerType',
-        //         'vr.GCCustomerType',
-        //         'vr.VisitID',
-        //         'vr.GCRegistrationStatus',
-        //         DB::raw('sc4.StandardCodeName AS StatusRegistrasi'),
-        //         'po.GCPrescriptionType',
-        //         DB::raw('sc1.StandardCodeName AS JenisResep'),
-        //         'po.ParamedicID',
-        //         'po.ClassID',
-        //         'po.DispensaryServiceUnitID',
-        //         'po.GCTransactionStatus',
-        //         DB::raw('sc3.StandardCodeName AS StatusTransaksi'),
-        //         'po.GCOrderStatus',
-        //         DB::raw('sc3.StandardCodeName AS StatusOrder'),
-        //         'po.SendOrderDateTime',
-        //         'po.SendOrderBy',
-        //         DB::raw('po.StartDate AS StartDateFarmasi'),
-        //         DB::raw('po.StartTime AS StartTimeFarmasi'),
-        //         DB::raw('po.CompleteDate AS CompleteDateFarmasi'),
-        //         DB::raw('po.CompleteTime AS CompleteTimeFarmasi'),
-        //         'po.CompleteByName',
-        //         DB::raw('po.ClosedDate AS ClosedDateFarmasi'),
-        //         DB::raw('po.ClosedTime AS ClosedTimeFarmasi'),
-        //         'po.ClosedByName',
-        //         'po.Remarks',
-        //         'po.CreatedBy',
-        //         'po.CreatedDate',
-        //         'po.LastUpdatedBy',
-        //         'po.LastUpdatedDate',
-        //         'po.ProposedBy',
-        //         DB::raw('us.UserName AS Petugas')
-        //     )
-        //     ->whereBetween('po.PrescriptionDate', [$startDate, $endDate])
-        //     // ->where('po.LocationID', '=', '11')
-        //     ->where('po.GCTransactionStatus', '<>', 'X121^999');
-
-        // if (!empty($location)) {
-        //     $query->where('po.LocationID', '=', $location);
-        // } else {
-        //     $query->whereIn('po.LocationID', $this->listLocationID);
-        // }
-
-        // if (!empty($customerType)) {
-        //     $query->where('vr.GCCustomerType', '=', $customerType);
-        // }
-
-        // if (!empty($search)) {
-        //     $query->where('vr.ServiceUnitName', 'like', '%' . $search . '%')
-        //         ->orWhere('vr.CustomerType', 'like', '%' . $search . '%');
-        // }
-
-        // $results = $query->orderBy('po.CreatedDate', 'desc')->get();
-        // return $results;
     }
 
-    function getCountOrderPharmacyRajalV2($startDate, $endDate)
+
+    /**
+     * Get summary report of order data group by Dispensary
+     *
+     * @param string $startDate, $endDate
+     * @return array
+     */
+    function getSummaryOrderPharmacyGroupByLocation($startDate, $endDate)
     {
         // Subquery untuk Racikan
         $racikan = DB::table('PrescriptionOrderHd as poh')
@@ -1010,8 +657,6 @@ class Pharmacy extends Model
                     ->whereColumn('poh.PrescriptionOrderID', 'poh_inner.PrescriptionOrderID');
             });
 
-        // dd($nonRacikan);
-
         // Gabungkan kedua subquery dengan UNION ALL
         $combinedOrders = $racikan->unionAll($nonRacikan);
 
@@ -1098,76 +743,17 @@ class Pharmacy extends Model
             ->groupBy('combined.Dispensary')
             ->orderBy('combined.Dispensary')
             ->get();
-        // AVG(DurationMinutes) AS AverageDuration,
-        // DATEDIFF(
-        //     SECOND,
-        //     poh.SendOrderDateTime,
-        //     CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME)
-        // ) AS 'DurationMinutes',
-        return $results;
-
-        // //query versi 1
-        // $query = DB::table('PrescriptionOrderHd as po')
-        //     ->selectRaw('
-        //         loc.LocationName,
-        //         COUNT(po.[LocationID]) AS TotalOrder,
-        //         SUM(CASE WHEN po.ClosedDate IS NULL THEN 1 ELSE 0 END) AS TotalOrderUnClosed,
-        //         SUM(CASE WHEN po.ClosedDate IS NOT NULL THEN 1 ELSE 0 END) AS TotalOrderClosed
-        //     ')
-        //     ->leftJoin('vRegistration as vr', function ($join) {
-        //         $join->on('po.VisitID', '=', 'vr.VisitID')
-        //             ->where('vr.GCRegistrationStatus', '<>', 'X020^006');
-        //     })
-        //     ->leftJoin('Location as loc', function ($join) {
-        //         $join->on('po.LocationID', '=', 'loc.LocationID')
-        //             ->where('loc.IsDeleted', '=', 0);
-        //     })
-        //     ->leftJoin('StandardCode as sc1', 'po.GCPrescriptionType', '=', 'sc1.StandardCodeID')
-        //     ->leftJoin('StandardCode as sc2', 'po.GCOrderStatus', '=', 'sc2.StandardCodeID')
-        //     ->leftJoin('StandardCode as sc3', 'po.GCTransactionStatus', '=', 'sc3.StandardCodeID')
-        //     ->leftJoin('StandardCode as sc4', 'vr.GCRegistrationStatus', '=', 'sc4.StandardCodeID')
-        //     ->leftJoin('User as us', 'po.ProposedBy', '=', 'us.UserID')
-        //     ->whereBetween('po.PrescriptionDate', [$startDate, $endDate])
-        //     ->where('po.GCTransactionStatus', '<>', 'X121^999');
-
-        // if (!empty($location)) {
-        //     $query->where('po.LocationID', '=', $location);
-        // } else {
-        //     $query->whereIn('po.LocationID', $this->listLocationID);
-        // }
-
-        // if (!empty($customerType)) {
-        //     $query->where('vr.GCCustomerType', '=', $customerType);
-        // } else {
-        //     $query->whereIn('vr.GCCustomerType', $this->listCustomerTypeID);
-        // }
-        // $results = $query->groupBy('loc.LocationName')
-        //     ->get();
-
-        // //query versi 2
-        // $query = "
-        //     SELECT
-        //         loc.LocationName,
-        //         COUNT(po.[LocationID]) AS TotalOrder
-        //     FROM [MS_RSDOSOBA].[dbo].[PrescriptionOrderHd] po
-        //     LEFT JOIN [vRegistration] vr ON po.VisitID = vr.VisitID AND vr.GCRegistrationStatus <> 'X020^006'
-        //     LEFT JOIN [Location] loc ON po.LocationID = loc.LocationID AND loc.IsDeleted = 0
-        //     LEFT JOIN [StandardCode] sc1 ON po.[GCPrescriptionType] = sc1.StandardCodeID
-        //     LEFT JOIN [StandardCode] sc2 ON po.[GCOrderStatus] = sc2.StandardCodeID
-        //     LEFT JOIN [StandardCode] sc3 ON po.[GCTransactionStatus] = sc3.StandardCodeID
-        //     LEFT JOIN [StandardCode] sc4 ON vr.[GCRegistrationStatus] = sc4.StandardCodeID
-        //     LEFT JOIN [User] us ON po.[ProposedBy] = us.UserID
-        //     WHERE po.[PrescriptionDate] BETWEEN ? AND ?
-        //         AND po.[GCTransactionStatus] <> 'X121^999'
-        //         AND po.[LocationID] IN ('11', '12', '163')
-        //         AND vr.CustomerType IN ('BPJS - Kemenkes', 'Pribadi', 'Rekanan', 'Karyawan - FASKES')
-        //     GROUP BY loc.LocationName
-        // ";
-        // $results = DB::select($query, [$startDate, $endDate]);
         return $results;
     }
 
-    function getCountOrderPharmacyRajalByCustomerTypeV2($startDate, $endDate, $location)
+
+    /**
+     *  Get summary report of order data group by Payer Customer
+     *
+     * @param string $startDate, $endDate, $location
+     * @return array
+     */
+    function getSummaryOrderPharmacyRajalByPayer($startDate, $endDate, $location)
     {
         // Subquery untuk Racikan
         $racikan = DB::table('PrescriptionOrderHd as poh')

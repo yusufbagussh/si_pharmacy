@@ -128,89 +128,6 @@
                     Data order hari ini belum Tersedia.
                 </div>
             @endforelse
-
-            {{-- <div class="col-md-6">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <h5 class="card-title text-uppercase fw-bold text-center" style="font-size: 30px;">Farmasi Rawat
-                            Jalan
-                        </h5>
-                        <table class="table table-bordered table-striped">
-                            <tr>
-                                <td colspan="2" class="text-center">Total Resep Dikerjakan</td>
-                                <td colspan="2" class="text-center">{{ $data[0]->TotalOrder }}</td>
-                            </tr>
-                            <tr>
-                                <td>Resep Selesai Dikerjakan</td>
-                                <td>{{ $data[0]->TotalOrderClosed }}</td>
-                                <td>Resep Belum Selesai Dikerjakan</td>
-                                <td>{{ $data[0]->TotalOrderUnClosed }}</td>
-                            </tr>
-                            <tr>
-                                <td>Resep Selesai Tepat Waktu</td>
-                                <td>0</td>
-                                <td>Resep Tidak Selesai Tepat Waktu</td>
-                                <td>0</td>
-                            </tr>
-                        </table>
-                        <p class="text-end"><a href="https://www.linkanda.com"
-                                style="text-decoration: underline; color: white;">View
-                                Detail</a></p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <h5 class="card-title text-uppercase fw-bold text-center" style="font-size: 30px;">Farmasi Rawat
-                            Inap
-                        </h5>
-                        <table class="table table-bordered table-striped">
-                            <tr>
-                                <td colspan="2" class="text-center">Total Resep Dikerjakan:</td>
-                                <td colspan="2" class="text-center">{{ $data[0]->TotalOrder }}</td>
-                            </tr>
-                            <tr>
-                                <td>Resep Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderClosed }}</td>
-                                <td>Resep Belum Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderUnClosed }}</td>
-                            </tr>
-                            <tr>
-                                <td>Resep Selesai Tepat Waktu:</td>
-                                <td>0</td>
-                                <td>Resep Tidak Selesai Tepat Waktu:</td>
-                                <td>0</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <h5 class="card-title text-uppercase fw-bold text-center" style="font-size: 30px;">Farmasi IGD</h5>
-                        <table class="table table-bordered table-striped">
-                            <tr>
-                                <td colspan="2" class="text-center">Total Resep Dikerjakan:</td>
-                                <td colspan="2" class="text-center">{{ $data[0]->TotalOrder }}</td>
-                            </tr>
-                            <tr>
-                                <td>Resep Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderClosed }}</td>
-                                <td>Resep Belum Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderUnClosed }}</td>
-                            </tr>
-                            <tr>
-                                <td>Resep Selesai Tepat Waktu:</td>
-                                <td>0</td>
-                                <td>Resep Tidak Selesai Tepat Waktu:</td>
-                                <td>0</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div> --}}
         </div>
     </div>
     </div>
@@ -221,45 +138,11 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script>
-        let date_range_str = @json($date);
-        if (date_range_str !== null) {
-            if (date_range_str.includes('to')) {
-                const [start_date_str, end_date_str] = date_range_str.split(' to ');
-
-                // Mengonversi string menjadi objek Date menggunakan Moment.js
-                start_date = moment(start_date_str, "DD-MM-YYYY").toDate();
-                end_date = moment(end_date_str, "DD-MM-YYYY").toDate();
-            } else {
-                // Mengonversi string menjadi objek Date menggunakan Moment.js
-                start_date = moment(date_range_str, "DD-MM-YYYY").toDate();
-                end_date = moment(date_range_str, "DD-MM-YYYY").toDate();
-            }
-        } else {
-            start_date = new Date();
-            end_date = new Date();
-        }
-
-        // Inisialisasi Flatpickr
-        // flatpickr('.flatpickr-date', {
-        //     mode: "range",
-        //     dateFormat: "d-m-Y",
-        //     defaultDate: [start_date, end_date] // Mengatur defaultDate ke hari ini dan besok
-        // });
-
-        // flatpickr('.flatpickr-date', {
-        //     enableTime: true,
-        //     mode: "range",
-        //     dateFormat: "Y-m-d h:iK",
-        //     minDate: new Date().fp_incr(-31),
-        //     maxDate: "today",
-        //     defaultDate: [startDate, endDate], // Mengatur defaultDate ke hari ini dan besok
-        // });
-
-        // String input
-        const inputString = date_range_str;
+        //Mengkonversi data date dari php ke javascript
+        const dateRangeStr = @json($date);
         // Parse the date-time strings using Moment.js
-        const startDate = moment(inputString.split(" to ")[0], "DD-MM-YYYY HH:mm").toDate();
-        const endDate = moment(inputString.split(" to ")[1], "DD-MM-YYYY HH:mm").toDate();
+        const startDate = moment(dateRangeStr.split(" to ")[0], "DD-MM-YYYY HH:mm").toDate();
+        const endDate = moment(dateRangeStr.split(" to ")[1], "DD-MM-YYYY HH:mm").toDate();
 
         // Fungsi untuk memeriksa dan membatasi rentang tanggal
         function limitRange(selectedDates, dateStr, instance) {

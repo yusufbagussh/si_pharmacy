@@ -33,6 +33,8 @@
                     </div>
                 </form> --}}
 
+                <div><strong class="text-white" id="current-datetime"></strong></div>
+
                 {{-- @auth
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button"

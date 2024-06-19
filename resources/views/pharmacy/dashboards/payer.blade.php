@@ -143,14 +143,13 @@
                     <table class="table table-striped table-bordered text-center table-custom-border">
                         <thead>
                             <tr>
-                                <th colspan="7" scope="col" class="align-middle">5 BOTTOM ORDER NON-RACIKAN</th>
+                                <th colspan="7" scope="col" class="align-middle">5 OLDEST ORDER NON-RACIKAN</th>
                             </tr>
                             <tr>
                                 <th scope="col" class="align-middle">No</th>
                                 <th scope="col" class="align-middle">No.RM</th>
                                 <th scope="col" class="align-middle">Nama Pasien</th>
                                 <th scope="col" class="align-middle">Penjamin</th>
-                                {{-- <th scope="col" class="align-middle">Jenis Resep</th> --}}
                                 <th scope="col" class="align-middle">Progress</th>
                                 <th scope="col" class="align-middle">Time</th>
                             </tr>
@@ -162,7 +161,6 @@
                                     <td class="no-rekan-medis">{{ $nonRacikan->MedicalNo }}</td>
                                     <td class="patient-name">{{ $nonRacikan->PatientName }}</td>
                                     <td>{{ $nonRacikan->Penjamin }}</td>
-                                    {{-- <td class="jenis-resep">{{ $nonRacikan->JenisResep }}</td> --}}
                                     <td class="text-bar">
                                         <div id="progress-bar-nonracikan{{ $key }}"
                                             class="progress-bar bg-primary" role="progressbar"
@@ -190,14 +188,13 @@
                     <table class="table table-striped table-bordered text-center table-custom-border">
                         <thead>
                             <tr>
-                                <th colspan="7" scope="col" class="align-middle">5 BOTTOM ORDER RACIKAN</th>
+                                <th colspan="7" scope="col" class="align-middle">5 OLDEST ORDER RACIKAN</th>
                             </tr>
                             <tr>
                                 <th scope="col" class="align-middle">No</th>
                                 <th scope="col" class="align-middle">No.RM</th>
                                 <th scope="col" class="align-middle">Nama Pasien</th>
                                 <th scope="col" class="align-middle">Penjamin</th>
-                                {{-- <th scope="col" class="align-middle">Jenis Resep</th> --}}
                                 <th scope="col" class="align-middle">Progress</th>
                                 <th scope="col" class="align-middle">Time</th>
                             </tr>
@@ -209,7 +206,6 @@
                                     <td class="no-rekan-medis">{{ $racikan->MedicalNo }}</td>
                                     <td class="patient-name">{{ $racikan->PatientName }}</td>
                                     <td>{{ $racikan->Penjamin }}</td>
-                                    {{-- <td class="jenis-resep">{{ $racikan->JenisResep }}</td> --}}
                                     <td class="text-bar">
                                         <div id="progress-bar-racikan{{ $key }}" class="progress-bar bg-primary"
                                             role="progressbar" style="width: 0%;color: white" aria-valuenow="0"
@@ -231,111 +227,6 @@
                     </table>
                 </div>
             </div>
-            {{-- <div class="col-md-6">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <h6 class="card-title text-uppercase fw-bold text-center" style="font-size: 30px;">BPJS - Kemenkes
-                        </h6>
-                        <table class="table table-bordered table-striped">
-                            <tr>
-                                <td colspan="2" class="text-center">Total Obat Dikerjakan:</td>
-                                <td colspan="2" class="text-center">{{ $data[0]->TotalOrderBPJS }}</td>
-                            </tr>
-                            <tr>
-                                <td>Resep Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderBPJSComplete }}</td>
-                                <td>Resep Belum Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderBPJSUnComplete }}</td>
-                            </tr>
-                            <tr>
-                                <td>Resep Selesai Tepat Waktu:</td>
-                                <td>A</td>
-                                <td>Resep Tidak Selesai Tepat Waktu:</td>
-                                <td>B</td>
-                            </tr>
-                        </table>
-                        <p class="text-end"><a href="https://www.linkanda.com"
-                                style="text-decoration: underline; color: white;">View
-                                Detail</a></p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <h6 class="card-title text-uppercase fw-bold text-center" style="font-size: 30px;">Pribadi</h6>
-                        <table class="table table-bordered table-striped">
-                            <tr>
-                                <td colspan="2" class="text-center">Total Resep Dikerjakan:</td>
-                                <td colspan="2" class="text-center">{{ $data[0]->TotalOrderPribadi }}</td>
-                            </tr>
-                            <tr>
-                                <td>Resep Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderPribadiComplete }}</td>
-                                <td>Resep Belum Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderPribadiUnComplete }}</td>
-                            </tr>
-                            <tr>
-                                <td>Resep Selesai Tepat Waktu:</td>
-                                <td>A</td>
-                                <td>Resep Tidak Selesai Tepat Waktu:</td>
-                                <td>B</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <h6 class="card-title text-uppercase fw-bold text-center" style="font-size: 30px;">Rekanan</h6>
-                        <table class="table table-bordered table-striped">
-                            <tr>
-                                <td colspan="2" class="text-center">Total Obat Dikerjakan:</td>
-                                <td colspan="2" class="text-center">{{ $data[0]->TotalOrderRekanan }}</td>
-                            </tr>
-                            <tr>
-                                <td>Obat Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderRekananComplete }}</td>
-                                <td>Obat Belum Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderRekananUnComplete }}</td>
-                            </tr>
-                            <tr>
-                                <td>Obat Selesai Tepat Waktu:</td>
-                                <td>A</td>
-                                <td>Obat Tidak Selesai Tepat Waktu:</td>
-                                <td>B</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <h6 class="card-title text-uppercase fw-bold text-center" style="font-size: 30px;">Karyawan - Faskes
-                        </h6>
-                        <table class="table table-bordered table-striped">
-                            <tr>
-                                <td colspan="2" class="text-center">Total Obat Dikerjakan:</td>
-                                <td colspan="2" class="text-center">{{ $data[0]->TotalOrderKaryawan }}</td>
-                            </tr>
-                            <tr>
-                                <td>Obat Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderKaryawanComplete }}</td>
-                                <td>Obat Belum Selesai Dikerjakan:</td>
-                                <td>{{ $data[0]->TotalOrderKaryawanUnComplete }}</td>
-                            </tr>
-                            <tr>
-                                <td>Obat Selesai Tepat Waktu:</td>
-                                <td>A</td>
-                                <td>Obat Tidak Selesai Tepat Waktu:</td>
-                                <td>B</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div> --}}
         </div>
     </div>
     </div>
@@ -346,30 +237,11 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script>
-        let date_range_str = @json($date);
-
-        if (date_range_str !== null) {
-            if (date_range_str.includes('to')) {
-                const [start_date_str, end_date_str] = date_range_str.split(' to ');
-
-                // Mengonversi string menjadi objek Date menggunakan Moment.js
-                start_date = moment(start_date_str, "DD-MM-YYYY").toDate();
-                end_date = moment(end_date_str, "DD-MM-YYYY").toDate();
-            } else {
-                // Mengonversi string menjadi objek Date menggunakan Moment.js
-                start_date = moment(date_range_str, "DD-MM-YYYY").toDate();
-                end_date = moment(date_range_str, "DD-MM-YYYY").toDate();
-            }
-        } else {
-            start_date = new Date();
-            end_date = new Date();
-        }
-
-        // String input
-        const inputString = date_range_str;
+        //Mengkonversi data date dari php ke javascript
+        const dateRangeStr = @json($date);
         // Parse the date-time strings using Moment.js
-        const startDate = moment(inputString.split(" to ")[0], "DD-MM-YYYY HH:mm").toDate();
-        const endDate = moment(inputString.split(" to ")[1], "DD-MM-YYYY HH:mm").toDate();
+        const startDate = moment(dateRangeStr.split(" to ")[0], "DD-MM-YYYY HH:mm").toDate();
+        const endDate = moment(dateRangeStr.split(" to ")[1], "DD-MM-YYYY HH:mm").toDate();
 
 
         // Fungsi untuk memeriksa dan membatasi rentang tanggal
@@ -384,8 +256,6 @@
                 }
             }
         }
-
-
 
         // Initialize Flatpickr with the default date-time range
         flatpickr(".flatpickr-date", {
@@ -409,6 +279,7 @@
                         instance.setDate(selectedDates, false);
                     }
 
+                    // Set maksimal range yang dapat diinput adalah 31 hari
                     const start = selectedDates[0];
                     const end = selectedDates[1];
                     const maxRange = moment(start).add(31, 'days').toDate();
@@ -421,9 +292,9 @@
         });
     </script>
     <script>
-        let timeOrder = {!! json_encode($timeRespons) !!};
-        let dataRacikanFromPHP = {!! json_encode($dataRacikans) !!};
-        let dataNonRacikanFromPHP = {!! json_encode($dataNonRacikans) !!};
+        let timeOrder = @json($timeRespons);
+        let dataRacikanFromPHP = @json($dataRacikans);
+        let dataNonRacikanFromPHP = @json($dataNonRacikans);
 
         function setAndGetDiffDateTime(date, time, earlyTime) {
             // Memecah string jam dan menit dari data time
@@ -459,11 +330,7 @@
                 combinedDateTime.setHours(hours);
                 combinedDateTime.setMinutes(minutes);
             }
-            //  else {
-            //     //ubah detik dan milidetik menjadi 0
-            //     combinedDateTime.setSeconds(0);
-            //     combinedDateTime.setMilliseconds(0);
-            // }
+
 
             return combinedDateTime;
         }
