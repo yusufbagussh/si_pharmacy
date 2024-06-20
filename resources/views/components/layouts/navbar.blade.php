@@ -37,7 +37,7 @@
                         <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
                             {{ auth()->user()->name }} <br>
-                            <strong class="text-white" id="current-datetime"></strong>
+                            <span class="text-white" id="current-datetime"></span>
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <li><a class="dropdown-item" href="{{ route('change-password') }}"><i
