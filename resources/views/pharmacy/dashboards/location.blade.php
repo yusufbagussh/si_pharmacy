@@ -26,7 +26,7 @@
                                                 <h5>Total Order</h5>
                                             </td>
                                             <td colspan="2" class="text-center text-dark fw-bold">
-                                                <h5><strong>{{ $location->TotalOrder }}</strong></h5>
+                                                <h4><strong>{{ $location->TotalOrder }}</strong></h4>
                                             </td>
                                         </tr>
                                     </thead>
@@ -36,13 +36,13 @@
                                                 <h5>Selesai Dikerjakan</h5>
                                             </td>
                                             <td class="text-dark fw-bold">
-                                                <h5><strong>{{ $location->TotalOrderClosed }}</strong></h5>
+                                                <h4><strong>{{ $location->TotalOrderClosed }}</strong></h4>
                                             </td>
                                             <td class="text-dark fw-bold">
                                                 <h5>Belum Selesai Dikerjakan</h5>
                                             </td>
                                             <td class="text-dark fw-bold">
-                                                <h5><strong>{{ $location->TotalOrderUnClosed }}</strong></h5>
+                                                <h4><strong>{{ $location->TotalOrderUnClosed }}</strong></h4>
                                             </td>
                                         </tr>
                                         <tr>
@@ -50,13 +50,13 @@
                                                 <h5>Selesai Tepat Waktu</h5>
                                             </td>
                                             <td class="text-center text-dark fw-bold">
-                                                <h5><strong>{{ $location->TotalOrderOnTime }}</strong></h5>
+                                                <h4><strong>{{ $location->TotalOrderOnTime }}</strong></h4>
                                             </td>
                                             <td class="text-dark fw-bold">
                                                 <h5>Tidak Selesai Tepat Waktu</h5>
                                             </td>
                                             <td class="text-center text-dark fw-bold">
-                                                <h5><strong>{{ $location->TotalOrderLateTime }}</strong></h5>
+                                                <h4><strong>{{ $location->TotalOrderLateTime }}</strong></h4>
                                             </td>
                                         </tr>
                                         <tr>
@@ -66,25 +66,25 @@
                                             @if ($location->AverageDurationRacikan)
                                                 @if ($location->AverageDurationRacikan > 3600)
                                                     <td colspan="2" class="text-center fw-bold bg-danger">
-                                                        <h5 class="text-white"><strong>
+                                                        <h4 class="text-white"><strong>
                                                                 @convertSeconds($location->AverageDurationRacikan)
                                                             </strong>
-                                                        </h5>
+                                                        </h4>
                                                     </td>
                                                 @else
                                                     <td colspan="2" class="text-center text-dark fw-bold">
-                                                        <h5><strong>
+                                                        <h4><strong>
                                                                 @convertSeconds($location->AverageDurationRacikan)
                                                             </strong>
-                                                        </h5>
+                                                        </h4>
                                                     </td>
                                                 @endif
                                             @else
                                                 <td colspan="2" class="text-center text-dark fw-bold">
-                                                    <h5><strong>
+                                                    <h4><strong>
                                                             00:00:00
                                                         </strong>
-                                                    </h5>
+                                                    </h4>
                                                 </td>
                                             @endif
                                         </tr>
@@ -95,25 +95,25 @@
                                             @if ($location->AverageDurationNonRacikan)
                                                 @if ($location->AverageDurationNonRacikan > 1800)
                                                     <td colspan="2" class="text-center fw-bold bg-danger">
-                                                        <h5 class="text-white"><strong>
+                                                        <h4 class="text-white"><strong>
                                                                 @convertSeconds($location->AverageDurationNonRacikan)
                                                             </strong>
-                                                        </h5>
+                                                        </h4>
                                                     </td>
                                                 @else
                                                     <td colspan="2" class="text-center text-dark fw-bold">
-                                                        <h5><strong>
+                                                        <h4><strong>
                                                                 @convertSeconds($location->AverageDurationNonRacikan)
                                                             </strong>
-                                                        </h5>
+                                                        </h4>
                                                     </td>
                                                 @endif
                                             @else
                                                 <td colspan="2" class="text-center text-dark fw-bold">
-                                                    <h5><strong>
+                                                    <h4><strong>
                                                             00:00:00
                                                         </strong>
-                                                    </h5>
+                                                    </h4>
                                                 </td>
                                             @endif
                                         </tr>

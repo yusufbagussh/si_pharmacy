@@ -32,18 +32,17 @@
                         </span>
                     </div>
                 </form> --}}
-
-                <div><strong class="text-white" id="current-datetime"></strong></div>
-
-                {{-- @auth
+                @auth
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
-                            Selamat datang, {{ auth()->user()->name }}
+                            {{ auth()->user()->name }} <br>
+                            <strong class="text-white" id="current-datetime"></strong>
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-layout-text-sidebar-reverse"></i>
-                                    Dashboard Saya</a></li>
+                            <li><a class="dropdown-item" href="{{ route('change-password') }}"><i
+                                        class="bi bi-layout-text-sidebar-reverse"></i>
+                                    Ubah Password</a></li>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
@@ -61,8 +60,7 @@
                         <a href="/login" class="nav-link text-white {{ $active === 'login' ? 'active' : '' }}"><i
                                 class="bi bi-box-arrow-in-right p-1"></i>Login</a>
                     </li>
-                @endauth --}}
-
+                @endauth
             </ul>
         </div>
     </div>

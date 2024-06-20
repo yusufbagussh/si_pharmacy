@@ -12,23 +12,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/icon_pharmacy_white.png') }}">
     @vite('resources/css/style.css')
-    <style>
-        /* Define custom grid classes */
-        .col-1-5 {
-            flex: 0 0 12.5%;
-            max-width: 12.5%;
-        }
-
-        /* Optional: Responsive styles */
-        @media (min-width: 576px) {
-            .col-md-1-5 {
-                flex: 0 0 12.5%;
-                max-width: 12.5%;
-            }
-        }
-
-        /* Add more media queries as needed */
-    </style>
 
 </head>
 

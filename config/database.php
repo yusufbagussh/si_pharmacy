@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'pgsql'),
 
     /*
     |--------------------------------------------------------------------------
@@ -94,12 +94,39 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        'pgsql_second' => [
+            'driver' => 'pgsql',
+            'url' => env('SECOND_DB_URL'),
+            'host' => env('SECOND_DB_HOST', '127.0.0.1'),
+            'port' => env('SECOND_DB_PORT', '5432'),
+            'database' => env('SECOND_DB_DATABASE', 'laravel'),
+            'username' => env('SECOND_DB_USERNAME', 'root'),
+            'password' => env('SECOND_DB_PASSWORD', ''),
+            'charset' => env('SECOND_DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'host' => env('DB_HOST', 'localhost'),
             'database' => env('DB_DATABASE', 'forge'),
             'username' => env('DB_USERNAME', 'forge'),
             'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'encrypt' => 'yes',
+            'trust_server_certificate' => true
+        ],
+
+        'sqlsrv_second' => [
+            'driver' => 'sqlsrv',
+            'host' => env('SECOND_DB_HOST', 'localhost'),
+            'database' => env('SECOND_DB_DATABASE', 'forge'),
+            'username' => env('SECOND_DB_USERNAME', 'forge'),
+            'password' => env('SECOND_DB_PASSWORD', ''),
             'charset' => 'utf8',
             'prefix' => '',
             'encrypt' => 'yes',

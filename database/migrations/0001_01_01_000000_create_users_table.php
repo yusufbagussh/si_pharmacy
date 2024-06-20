@@ -7,16 +7,26 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
+     * The database connection that should be used by the migration.
+     *
+     * @var string
+     */
+    protected $connection = 'pgsql_second';
+    /**
      * Run the migrations.
      */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->string('kode_bagian')->nullable();
             $table->string('name');
-            $table->string('email')->unique();
+            $table->string('username');
+            $table->string('golongan');
+            $table->boolean('is_active');
+            $table->string('password')->nullable();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('email')->unique()->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

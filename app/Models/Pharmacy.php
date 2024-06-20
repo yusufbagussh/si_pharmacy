@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Pharmacy extends Model
 {
-    protected $connection = 'sqlsrv';
+    protected $connection = 'sqlsrv_second';
 
     use HasFactory;
 
