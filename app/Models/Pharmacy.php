@@ -488,7 +488,7 @@ class Pharmacy extends Model
      * @param string $startDate, $endDate
      * @return array
      */
-    function getSummaryOrderPharmacyGroupByLocation($startDate, $endDate)
+    function getSummaryOrderPharmacyGroupByLocation($startDate, $endDate, $location)
     {
         // Subquery untuk Racikan
         $racikan = DB::table('PrescriptionOrderHd as poh')
@@ -562,6 +562,7 @@ class Pharmacy extends Model
             ->whereNotIn('poh.GCTransactionStatus', ['X121^999'])
             ->whereNot('pch.TotalAmount', '=', '.00')
             ->whereNotIn('r.MRN', [10, 527556])
+            ->where('poh.DispensaryServiceUnitID', $location)
             ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
             ->where('pod.IsCompound', 1);
 
@@ -635,8 +636,9 @@ class Pharmacy extends Model
             ->whereNotIn('poh.GCTransactionStatus', ['X121^999'])
             ->whereNot('pch.TotalAmount', '=', '.00')
             ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
+            ->where('poh.DispensaryServiceUnitID', $location)
             ->whereNotIn('r.MRN', [10, 527556])
-            ->whereNotExists(function ($query) use ($startDate, $endDate) {
+            ->whereNotExists(function ($query) use ($startDate, $endDate, $location) {
                 $query->select(DB::raw(1))
                     ->from('PrescriptionOrderHd as poh_inner')
                     ->join('PrescriptionOrderDt as pod_inner', 'poh_inner.PrescriptionOrderID', '=', 'pod_inner.PrescriptionOrderID')
@@ -653,6 +655,7 @@ class Pharmacy extends Model
                     ->whereNot('pch.TotalAmount', '=', '.00')
                     ->whereNotIn('r.MRN', [10, 527556])
                     ->where('pod_inner.IsCompound', 1)
+                    ->where('poh.DispensaryServiceUnitID', $location)
                     ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
                     ->whereColumn('poh.PrescriptionOrderID', 'poh_inner.PrescriptionOrderID');
             });

@@ -119,7 +119,7 @@ class DashboardController extends Controller
         while (true) {
             try {
                 DB::transaction(function () use (&$data, $start_date, $end_date) {
-                    $data = $this->pharmacy->getSummaryOrderPharmacyGroupByLocation(startDate: $start_date, endDate: $end_date);
+                    $data = $this->pharmacy->getSummaryOrderPharmacyGroupByLocation(startDate: $start_date, endDate: $end_date, location: $this->locationId);
                 });
                 break; // keluar dari loop jika transaksi berhasil
             } catch (QueryException $e) {
