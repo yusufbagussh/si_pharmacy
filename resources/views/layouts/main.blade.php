@@ -12,6 +12,32 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/icon_pharmacy_white.png') }}">
     @vite('resources/css/style.css')
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .footer {
+            position: relative;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: #1a6d2c;
+            /* Warna hijau lebih gelap untuk tab aktif */
+            border-color: #ffffff;
+            /* Warna putih untuk border */
+            color: #ffffff;
+            /* Pastikan teks tetap putih */
+        }
+    </style>
 
 </head>
 

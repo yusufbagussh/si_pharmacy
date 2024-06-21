@@ -1,27 +1,4 @@
-html,
-body {
-    height: 100%;
-}
 
-body {
-    display: flex;
-    flex-direction: column;
-}
-
-.footer {
-    position: relative;
-    bottom: 0;
-    width: 100%;
-}
-
-.nav-tabs .nav-link.active {
-    background-color: #1a6d2c;
-    /* Warna hijau lebih gelap untuk tab aktif */
-    border-color: #ffffff;
-    /* Warna putih untuk border */
-    color: #ffffff;
-    /* Pastikan teks tetap putih */
-}
 
 /* @media (max-width: 576px) {
     .input-group {

@@ -10,7 +10,7 @@ Route::get('/', function () {
     return redirect('/pharmacies/dashboard/orders');
 });
 
-Route::group(['prefix' => 'pharmacies/dashboard', 'middleware' => ['auth', 'farmasi']], function () {
+Route::group(['prefix' => 'pharmacies/dashboard'], function () {
     Route::controller(DashboardController::class)->group(function () {
         Route::get('locations', 'location')->name('pharmacies.dashboard.locations');
         Route::get('payers', 'payer')->name('pharmacies.dashboard.payers');
