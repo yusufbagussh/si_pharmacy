@@ -8,7 +8,7 @@ use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
     return redirect('/pharmacies/dashboard/orders');
-});
+})->middleware(['auth', 'farmasi']);
 
 Route::group(['prefix' => 'pharmacies/dashboard', 'middleware' => ['auth', 'farmasi']], function () {
     Route::controller(DashboardController::class)->group(function () {

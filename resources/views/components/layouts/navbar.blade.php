@@ -57,7 +57,8 @@
                     </li>
                 @else
                     <li class="nav-item">
-                        <a href="/login" class="nav-link text-white {{ $active === 'login' ? 'active' : '' }}"><i
+                        <a href="{{ route('login') }}"
+                            class="nav-link text-white {{ $active === 'login' ? 'active' : '' }}"><i
                                 class="bi bi-box-arrow-in-right p-1"></i>Login</a>
                     </li>
                 @endauth

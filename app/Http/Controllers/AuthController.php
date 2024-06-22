@@ -60,7 +60,6 @@ class AuthController extends Controller
         ]);
 
         $user = $this->user->checkPasswordByUsername($credential['username']);
-
         if ($user->password === null) {
             $user->password = Hash::make($credential['username']);
             $user->save();
@@ -69,7 +68,6 @@ class AuthController extends Controller
         if (Auth::attempt($credential)) {
             $request->session()->regenerate();
 
-            // return redirect()->intended('dashboard');
             return redirect()->route('pharmacies.dashboard.orders');
         }
 
