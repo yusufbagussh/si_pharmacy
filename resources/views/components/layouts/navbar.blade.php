@@ -40,8 +40,8 @@
                             <span class="text-white" id="current-datetime"></span>
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="{{ route('change-password') }}"><i
-                                        class="bi bi-layout-text-sidebar-reverse"></i>
+                            <li><a class="dropdown-item" href="{{ route('change-password') }}">
+                                    <i class="bi bi-shield-lock"></i>
                                     Ubah Password</a></li>
                             <li>
                                 <hr class="dropdown-divider">
@@ -59,7 +59,9 @@
                     <li class="nav-item">
                         <a href="{{ route('login') }}"
                             class="nav-link text-white {{ $active === 'login' ? 'active' : '' }}"><i
-                                class="bi bi-box-arrow-in-right p-1"></i>Login</a>
+                                class="bi bi-box-arrow-in-right p-1"></i>Login <br>
+                            <span class="text-white" id="current-datetime"></span>
+                        </a>
                     </li>
                 @endauth
             </ul>

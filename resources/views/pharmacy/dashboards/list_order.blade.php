@@ -1,9 +1,9 @@
 @extends('layouts.main')
 @section('container')
     <div class="container-fluid mt-2">
-        <div class="row my-2 d-flex justify-content-center">
+        <div class="row my-2 d-flex">
             <form action="{{ route('pharmacies.dashboard.orders') }}" method="GET" class="col-12 col-md-12">
-                <div class="input-group flex-column flex-md-row">
+                <div class="input-group flex-column flex-md-row justify-content-center">
                     {{-- Search --}}
                     <div class="col-12 col-md-2 mb-2">
                         <label for="search" class="form-label">Pencarian</label>
@@ -11,53 +11,65 @@
                             value="{{ request('search') }}" placeholder="Cari No.RM/Nama Pasien">
                     </div>
                     {{-- Location --}}
-                    <div class="col-12 col-md-2 mb-2">
-                        <label for="location" class="form-label">Lokasi</label>
-                        <select class="form-select" id="location" name="location" aria-label="Default select example">
-                            @foreach ($locations as $key => $value)
-                                <option value="{{ $key }}" {{ $locationId == $key ? 'selected' : '' }}>
-                                    {{ $value }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    {{-- Customer Type --}}
-                    <div class="col-12 col-md-2 mb-2">
-                        <label for="customer_type" class="form-label">Penjamin</label>
-                        <select class="form-select" id="customer_type" name="customer_type"
-                            aria-label="Default select example">
-                            @foreach ($customerTypes as $key => $value)
-                                <option value="{{ $key }}" {{ $customerTypeId == $key ? 'selected' : '' }}>
-                                    {{ $value }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    {{-- Status Order --}}
-                    <div class="col-12 col-md-1 mb-2">
-                        <label for="status_order" class="form-label">Status Order</label>
-                        <select class="form-select" id="status_order" name="status_order"
-                            aria-label="Default select example">
-                            @foreach ($statusOrders as $key => $value)
-                                <option value="{{ $key }}" {{ $statusOrderId == $key ? 'selected' : '' }}>
-                                    {{ $value }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    {{-- Jenis Order --}}
-                    <div class="col-12 col-md-1 mb-2">
-                        <label for="jenis_order" class="form-label">Jenis Order</label>
-                        <select class="form-select" id="jenis_order" name="jenis_order" aria-label="Default select example">
-                            @foreach ($jenisOrders as $key => $value)
-                                <option value="{{ $key }}" {{ $jenisOrderId == $key ? 'selected' : '' }}>
-                                    {{ $value }}
-                                </option>
-                            @endforeach
-                        </select>
+                    <div class="col-12 col-md-6 mb-2">
+                        <div class="row">
+                            <div class="custom-inline-form">
+                                {{-- Location --}}
+                                <div class="col-12 col-md-3">
+                                    <label for="location" class="form-label">Lokasi</label>
+                                    <select class="form-select" id="location" name="location"
+                                        aria-label="Default select example">
+                                        @foreach ($locations as $key => $value)
+                                            <option value="{{ $key }}" {{ $locationId == $key ? 'selected' : '' }}>
+                                                {{ $value }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                {{-- Customer Type --}}
+                                <div class="col-12 col-md-3">
+                                    <label for="customer_type" class="form-label">Penjamin</label>
+                                    <select class="form-select" id="customer_type" name="customer_type"
+                                        aria-label="Default select example">
+                                        @foreach ($customerTypes as $key => $value)
+                                            <option value="{{ $key }}"
+                                                {{ $customerTypeId == $key ? 'selected' : '' }}>
+                                                {{ $value }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                {{-- Status Order --}}
+                                <div class="col-12 col-md-3">
+                                    <label for="status_order" class="form-label">Status Order</label>
+                                    <select class="form-select" id="status_order" name="status_order"
+                                        aria-label="Default select example">
+                                        @foreach ($statusOrders as $key => $value)
+                                            <option value="{{ $key }}"
+                                                {{ $statusOrderId == $key ? 'selected' : '' }}>
+                                                {{ $value }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                {{-- Jenis Order --}}
+                                <div class="col-12 col-md-3">
+                                    <label for="jenis_order" class="form-label">Jenis Order</label>
+                                    <select class="form-select" id="jenis_order" name="jenis_order"
+                                        aria-label="Default select example">
+                                        @foreach ($jenisOrders as $key => $value)
+                                            <option value="{{ $key }}"
+                                                {{ $jenisOrderId == $key ? 'selected' : '' }}>
+                                                {{ $value }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     {{-- Date --}}
-                    <div class="col-12 col-md-2 mb-2">
+                    <div class="col-12 col-md-2 mb-2 after">
                         <label for="date" class="form-label">Tanggal</label>
                         <input type="text" class="form-control flatpickr-date" id="date" name="date"
                             placeholder="dd-mm-yyyy" value="{{ $date }}">
@@ -65,8 +77,8 @@
                     <div class="col-12 col-md-2 mb-2">
                         <div class="row">
                             {{-- Sort By --}}
-                            <div class="col-12 col-md-9 mr-0">
-                                <label for="sort_by" class="form-label">OrderBy</label>
+                            <label for="sort_by" class="form-label">OrderBy</label>
+                            <div class="custom-inline-form">
                                 <select class="form-select" id="sort_by" name="sort_by"
                                     aria-label="Default select example">
                                     @foreach ($sorts as $key => $value)
@@ -75,10 +87,7 @@
                                         </option>
                                     @endforeach
                                 </select>
-                            </div>
-                            {{-- Submit Button --}}
-                            <div class="col-12 col-md-3 d-flex align-items-end">
-                                <button type="submit" class="btn btn-success w-100"><i class="bi bi-search"></i></button>
+                                <button type="submit" class="btn btn-success"><i class="bi bi-search"></i></button>
                             </div>
                         </div>
                     </div>
@@ -414,6 +423,36 @@
             }
         });
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"
+        integrity="sha512-VEd+nq25CkR676O+pLBnDW09R7VQX9Mdiij052gVCp5yVH3jGtH70Ho/UUv4mJDsEdTvqRCFZg0NKGiojGnUCw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    @if (session()->has('passwordSuccess'))
+        <script>
+            // toastr.options = {
+            //     "closeButton": true,
+            //     "debug": false,
+            //     "newestOnTop": true,
+            //     "progressBar": true,
+            //     "positionClass": "toast-top-right",
+            //     "preventDuplicates": false,
+            //     "onclick": null,
+            //     "showDuration": "300",
+            //     "hideDuration": "1000",
+            //     "timeOut": "1000", // Notifikasi akan tampil selama 1 detik
+            //     "extendedTimeOut": "1000", // Waktu tambahan sebelum notifikasi benar-benar hilang
+            //     "showEasing": "swing",
+            //     "hideEasing": "linear",
+            //     "showMethod": "fadeIn",
+            //     "hideMethod": "fadeOut"
+            // };
+
+            toastr.success("{{ session('passwordSuccess') }}", 'Success!', {
+                timeOut: 2000,
+                extendedTimeOut: 1000,
+                progressBar: true,
+            })
+        </script>
+    @endif
     <script>
         // Fungsi untuk reload halaman setiap 30 detik
         function reloadPage() {

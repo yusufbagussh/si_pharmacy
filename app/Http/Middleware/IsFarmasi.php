@@ -16,7 +16,7 @@ class IsFarmasi
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::user()->kode_bagian !== 'k45' && Auth::user()->kode_bagian !== 'os28') {
+        if (Auth::user()->kode_bagian !== 'k21' && Auth::user()->kode_bagian !== 'k45' && Auth::user()->kode_bagian !== 'os28') {
             abort(403, 'You are not authorized to access this page.');
         }
         return $next($request);

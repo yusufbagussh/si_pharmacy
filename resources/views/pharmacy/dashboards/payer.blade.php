@@ -4,7 +4,7 @@
         <div class="row my-3 d-flex col-12 col-md-12">
             <form action="{{ route('pharmacies.dashboard.payers') }}" method="GET">
                 <div class="input-group flex-column flex-md-row justify-content-center">
-                    <div class="col-12 col-md-3">
+                    <div class="col-12 col-md-2">
                         <select class="form-select mb-2 mb-md-0" id="location" name="location"
                             aria-label="Default select example">
                             @foreach ($locations as $key => $value)
@@ -13,7 +13,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-3">
                         <input type="text" class="form-control flatpickr-date mb-2 mb-md-0" id="date" name="date"
                             placeholder="dd-mm-yyyy" value="{{ $date }}">
                     </div>

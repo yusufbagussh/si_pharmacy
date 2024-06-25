@@ -43,12 +43,14 @@ class AuthController extends Controller
         $user = $this->user->checkPasswordByUsername(Auth::user()->username);
 
         if (!Hash::check($request->old_password, $user->password)) {
-            return back()->with('passwordError', 'Old password is incorrect!');
+            return back()->with('passwordError', 'Password is incorrect!');
         }
 
         $user->password = Hash::make($request->new_password);
         $user->save();
 
+        session()->flash('passwordSuccess', 'Password has been changed!');
+        // return back()->with('passwordSuccess', 'Password has been changed!');
         return redirect()->route('pharmacies.dashboard.orders');
     }
 
@@ -60,6 +62,10 @@ class AuthController extends Controller
         ]);
 
         $user = $this->user->checkPasswordByUsername($credential['username']);
+        if ($user->kode_bagian !== 'k21' && $user->kode_bagian !== 'k45' && $user->kode_bagian !== 'os28') {
+            return back()->with('loginError', 'Login failed! Please check your credential.');
+        }
+
         if ($user->password === null) {
             $user->password = Hash::make($credential['username']);
             $user->save();
@@ -67,7 +73,6 @@ class AuthController extends Controller
 
         if (Auth::attempt($credential)) {
             $request->session()->regenerate();
-
             return redirect()->route('pharmacies.dashboard.orders');
         }
 

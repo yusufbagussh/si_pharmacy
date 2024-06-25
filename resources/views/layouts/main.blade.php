@@ -11,8 +11,11 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/icon_pharmacy_white.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"
+        integrity="sha512-vKMx8UnXk60zUwyUnUPM3HbQo8QfmNx7+ltw8Pm5zLusl1XIfwcxo8DbWCqMGKaWeNxWA8yrx5v3SaVpMvR3CA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     {{-- @vite('resources/css/style.css') --}}
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    {{-- <link type="text/css" rel="stylesheet" href="{{ asset('css/style.css') }}"> --}}
     <style>
         html,
         body {
@@ -37,6 +40,31 @@
             /* Warna putih untuk border */
             color: #ffffff;
             /* Pastikan teks tetap putih */
+        }
+
+        .custom-inline-form {
+            display: flex;
+            align-items: center;
+        }
+
+        .custom-inline-form .form-select {
+            margin-right: 10px;
+            /* Sesuaikan ruang di antara elemen sesuai kebutuhan */
+        }
+
+        .custom-inline-form button {
+            margin-left: -10px;
+            /* Koreksi margin untuk mengimbangi margin di select */
+        }
+
+        #toast-container {
+            top: 80px !important;
+            /* Ubah jarak kemunculan pesan dari atas */
+        }
+
+        .toast-success {
+            background-color: #038d23 !important;
+            /* Warna background untuk notifikasi sukses */
         }
     </style>
 </head>
