@@ -18,7 +18,7 @@ class DashboardController extends Controller
         '100' => 'Farmasi Rawat Jalan',
         // '101' => 'Farmasi Rawat Inap',
         // '133' => 'Farmasi Rawat Non-UDD',
-        '166' => 'Farmasi IGD',
+        // '166' => 'Farmasi IGD',
     ];
     private $customerTypes = [
         'all' => 'Semua',
@@ -178,15 +178,16 @@ class DashboardController extends Controller
             $this->dateRangeStr = $start_date_str . ' to ' . $end_date_str;
         }
 
-        $data = $dataNonRacikans = $dataRacikans = [];
+        $data = $dataNonRacikans = $dataRacikans = $dataOrder = [];
 
         //Melakukan transaksi database, try hingga transaksi berhasil dan jeda setiap 1 detik sebelum mencoba lagi
         while (true) {
             try {
-                DB::transaction(function () use (&$data, &$dataNonRacikans, &$dataRacikans, $start_date, $end_date) {
+                DB::transaction(function () use (&$data, &$dataOrder, &$dataNonRacikans, &$dataRacikans, $start_date, $end_date) {
                     $data = $this->pharmacy->getSummaryOrderPharmacyRajalByPayer(startDate: $start_date, endDate: $end_date, location: $this->locationId);
-                    $dataNonRacikans = $this->pharmacy->getFiveOldestOrderNonRacikanRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
-                    $dataRacikans = $this->pharmacy->getFiveOldestOrderRacikanRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
+                    // $dataNonRacikans = $this->pharmacy->getFiveOldestOrderNonRacikanRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
+                    // $dataRacikans = $this->pharmacy->getFiveOldestOrderRacikanRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
+                    $dataOrder = $this->pharmacy->getFiveOldestOrderRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
                 });
                 break; // keluar dari loop jika transaksi berhasil
             } catch (QueryException $e) {
@@ -203,8 +204,8 @@ class DashboardController extends Controller
             'locations' => $this->locations,
             'locationId' => $this->locationId,
             'date' => $this->dateRangeStr,
-            'dataRacikans' => $dataRacikans,
-            'dataNonRacikans' => $dataNonRacikans,
+            'dataRacikans' => $dataOrder['dataRacikans'],
+            'dataNonRacikans' => $dataOrder['dataNonRacikans'],
             'timeRespons' => $this->timeRespons,
         ]);
     }

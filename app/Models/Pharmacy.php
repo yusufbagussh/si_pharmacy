@@ -9,9 +9,107 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Pharmacy extends Model
 {
+    use HasFactory;
+
     protected $connection = 'sqlsrv_second';
 
-    use HasFactory;
+    /**
+     * Get Base Query for Pharmacy
+     *
+     * @param string $startDate, $endDate, $location
+     * @return \Illuminate\Database\Query\Builder
+     */
+    protected function getBaseQuery($startDate, $endDate, $location)
+    {
+        $basedQuery = DB::table('PrescriptionOrderHd as poh')
+            ->distinct()
+            ->select(
+                'poh.DispensaryServiceUnitID',
+                'su.ServiceUnitName AS Poli',
+                'r.RegistrationNo',
+                'p.MedicalNo',
+                'p.FullName AS PatientName',
+                'pm.FullName AS Nama Dokter',
+                'ua.FullName AS Orderer',
+                'sc2.StandardCodeName AS StatusOrder',
+                'poh.PrescriptionOrderID',
+                'poh.PrescriptionOrderNo',
+                'pch.TransactionID',
+                'pch.TransactionNo',
+                'poh.SendOrderDateTime',
+                'pch.ProposedDate AS ProposedDateTime',
+                'ua2.FullName AS User Propose',
+                'poh.ClosedDate AS ClosedDateFarmasi',
+                'poh.ClosedTime AS ClosedTimeFarmasi',
+                'bp.BusinessPartnerID',
+                'c.GCCustomerType',
+                'sc.StandardCodeName AS Penjamin',
+                'bp.BusinessPartnerName',
+                'pch.TotalAmount',
+                'poh.CreatedDate',
+                'sc3.StandardCodeName AS StatusTransaksi',
+                'poh.PrescriptionDate',
+                'pod.IsCompound',
+            )
+            ->join('PrescriptionOrderDt as pod', 'poh.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
+            ->leftJoin('PatientChargesHd as pch', function ($join) {
+                $join->on('poh.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
+                    ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
+            })
+            ->join('ConsultVisit as cv', 'poh.VisitID', '=', 'cv.VisitID')
+            ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
+            ->join('Patient as p', 'r.MRN', '=', 'p.MRN')
+            ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
+            ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
+            ->join('StandardCode as sc', 'c.GCCustomerType', '=', 'sc.StandardCodeID')
+            ->join('StandardCode as sc2', 'poh.GCTransactionStatus', '=', 'sc2.StandardCodeID')
+            ->leftJoin('StandardCode as sc3', 'pch.GCTransactionStatus', '=', 'sc3.StandardCodeID')
+            ->join('HealthcareServiceUnit as hsu', 'cv.HealthcareServiceUnitID', '=', 'hsu.HealthcareServiceUnitID')
+            ->join('ServiceUnitMaster as su', 'hsu.ServiceUnitID', '=', 'su.ServiceUnitID')
+            ->join('HealthcareServiceUnit as hsud', 'poh.DispensaryServiceUnitID', '=', 'hsud.HealthcareServiceUnitID')
+            ->join('ServiceUnitMaster as sud', 'hsud.ServiceUnitID', '=', 'sud.ServiceUnitID')
+            ->join('ParamedicMaster as pm', 'poh.ParamedicID', '=', 'pm.ParamedicID')
+            ->join('UserAttribute as ua', 'poh.CreatedBy', '=', 'ua.UserID')
+            ->leftJoin('UserAttribute as ua2', 'pch.ProposedBy', '=', 'ua2.UserID')
+            ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
+            ->where('poh.DispensaryServiceUnitID', $location)
+            ->whereNot('pch.TotalAmount', '=', '.00')
+            ->whereNotIn('r.MRN', [10, 527556])
+            ->whereNotIn('poh.GCTransactionStatus', ['X121^999']);
+        return $basedQuery;
+    }
+
+    /**
+     * Get five oldest order data when type is Racikan
+     *
+     * @param string $query, $startDate, $endDate, $location
+     * @return \Illuminate\Database\Query\Builder
+     */
+    protected function addWhereNotExistsQuery($query, $startDate, $endDate, $location)
+    {
+        $addWhereNotExistsQuery = $query->whereNotExists(function ($query) use ($startDate, $endDate, $location) {
+            $query->select(DB::raw(1))
+                ->from('PrescriptionOrderHd as poh2')
+                ->join('PrescriptionOrderDt as pod', 'poh2.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
+                ->leftJoin('PatientChargesHd as pch', function ($join) {
+                    $join->on('poh2.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
+                        ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
+                })
+                ->join('ConsultVisit as cv', 'poh2.VisitID', '=', 'cv.VisitID')
+                ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
+                ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
+                ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
+                ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
+                ->where('poh2.DispensaryServiceUnitID', $location)
+                ->whereNotIn('poh2.GCTransactionStatus', ['X121^999'])
+                ->whereNot('pch.TotalAmount', '=', '.00')
+                ->whereNotIn('r.MRN', [10, 527556])
+                ->where('pod.IsCompound', 1)
+                ->whereRaw('poh2.PrescriptionOrderID = poh.PrescriptionOrderID');
+        });
+
+        return $addWhereNotExistsQuery;
+    }
 
     /**
      * Get five oldest order data when type is Non-Racikan
@@ -19,179 +117,309 @@ class Pharmacy extends Model
      * @param string $startDate, $endDate, $location
      * @return array
      */
-    function getFiveOldestOrderNonRacikanRajal($startDate, $endDate, $location)
+    function getFiveOldestOrderRajal($startDate, $endDate, $location)
     {
-        $queryNonRacikan =
-            DB::table('PrescriptionOrderHd as poh')
-            ->distinct()
-            ->select(DB::raw("
-            poh.DispensaryServiceUnitID,
-            sud.ServiceUnitName as 'Dispensary',
-            su.ServiceUnitName as 'Poli',
-            CASE
-                WHEN poh.SendOrderDateTime IS NOT NULL
-                    THEN DATEDIFF(SECOND, poh.SendOrderDateTime, CURRENT_TIMESTAMP)
-                WHEN pch.ProposedDate IS NOT NULL
-                    THEN DATEDIFF(SECOND, pch.ProposedDate, CURRENT_TIMESTAMP)
-                ELSE
-                    NULL
-            END AS 'DurationMinutes',
-            r.RegistrationNo,
-            p.MedicalNo,
-            p.FullName as 'PatientName',
-            pm.FullName as 'Nama Dokter',
-            ua.FullName as 'Orderer',
-            sc2.StandardCodeName as 'StatusOrder',
-            poh.PrescriptionOrderID,
-            poh.PrescriptionOrderNo,
-            pch.TransactionID,
-            pch.TransactionNo,
-            poh.SendOrderDateTime,
-            pch.ProposedDate as ProposedDateTime,
-            ua2.FullName as 'User Propose',
-            poh.ClosedDate as ClosedDateFarmasi,
-            poh.ClosedTime as ClosedTimeFarmasi,
-            bp.BusinessPartnerID,
-            c.GCCustomerType,
-            sc.StandardCodeName as 'Penjamin',
-            bp.BusinessPartnerName,
-            pch.TotalAmount,
-            poh.CreatedDate,
-            sc3.StandardCodeName as 'StatusTransaksi',
-            poh.PrescriptionDate,
-            pod.IsCompound,
-            'NON RACIKAN' as 'JenisResep'
-        "))
-            ->join('PrescriptionOrderDt as pod', 'poh.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
+        $baseQueryOldestOrder = $this->getBaseQuery($startDate, $endDate, $location)
+            ->addSelect(
+                'sud.ServiceUnitName as Dispensary',
+                DB::raw("CASE
+                            WHEN poh.SendOrderDateTime IS NOT NULL
+                                THEN DATEDIFF(SECOND, poh.SendOrderDateTime, CURRENT_TIMESTAMP)
+                            WHEN pch.ProposedDate IS NOT NULL
+                                THEN DATEDIFF(SECOND, pch.ProposedDate, CURRENT_TIMESTAMP)
+                            ELSE
+                                NULL
+                            END
+                        AS 'DurationSeconds'")
+            );
 
-            ->leftJoin('PatientChargesHd as pch', function ($join) {
-                $join->on('poh.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
-                    ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
-            })
-            ->join('ConsultVisit as cv', 'poh.VisitID', '=', 'cv.VisitID')
-            ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
-            ->join('Patient as p', 'r.MRN', '=', 'p.MRN')
-            ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
-            ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
-            ->join('StandardCode as sc', 'c.GCCustomerType', '=', 'sc.StandardCodeID')
-            ->join('StandardCode as sc2', 'poh.GCTransactionStatus', '=', 'sc2.StandardCodeID')
-            ->leftJoin('StandardCode as sc3', 'pch.GCTransactionStatus', '=', 'sc3.StandardCodeID')
-            ->join('HealthcareServiceUnit as hsu', 'cv.HealthcareServiceUnitID', '=', 'hsu.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as su', 'hsu.ServiceUnitID', '=', 'su.ServiceUnitID')
-            ->join('HealthcareServiceUnit as hsud', 'poh.DispensaryServiceUnitID', '=', 'hsud.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as sud', 'hsud.ServiceUnitID', '=', 'sud.ServiceUnitID')
-            ->join('ParamedicMaster as pm', 'poh.ParamedicID', '=', 'pm.ParamedicID')
-            ->join('UserAttribute as ua', 'poh.CreatedBy', '=', 'ua.UserID')
-            ->leftJoin('UserAttribute as ua2', 'pch.ProposedBy', '=', 'ua2.UserID')
-            ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
-            ->where('poh.DispensaryServiceUnitID', $location)
-            ->whereNot('pch.TotalAmount', '=', '.00')
-            ->whereNotIn('r.MRN', [10, 527556])
-            ->whereNotIn('poh.GCTransactionStatus', ['X121^999'])
+        $dataRacikans = (clone $baseQueryOldestOrder)
+            ->addSelect(DB::raw("'RACIKAN' AS JenisResep"))
             ->whereNull('poh.ClosedDate')
-            ->whereNotExists(function ($query) use ($startDate, $endDate, $location) {
-                $query->select(DB::raw(1))
-                    ->from('PrescriptionOrderHd as poh2')
-                    ->join('PrescriptionOrderDt as pod', 'poh2.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
-                    ->leftJoin('PatientChargesHd as pch', function ($join) {
-                        $join->on('poh2.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
-                            ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
-                    })
-                    ->join('ConsultVisit as cv', 'poh2.VisitID', '=', 'cv.VisitID')
-                    ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
-                    ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
-                    ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
-                    ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
-                    ->where('poh2.DispensaryServiceUnitID', $location)
-                    ->whereNotIn('poh2.GCTransactionStatus', ['X121^999'])
-                    ->whereNot('pch.TotalAmount', '=', '.00')
-                    ->whereNotIn('r.MRN', [10, 527556])
-                    ->where('pod.IsCompound', 1)
-                    ->whereRaw('poh2.PrescriptionOrderID = poh.PrescriptionOrderID')
-                    ->whereNull('poh.ClosedDate');
-            });
+            ->where('pod.IsCompound', 1)
+            ->orderBy('DurationSeconds', 'desc')
+            ->limit(5)
+            ->get();
 
-        $results = $queryNonRacikan->orderBy('DurationMinutes', 'desc')->limit(5)->get();
+        $dataNonRacikans = (clone $baseQueryOldestOrder)
+            ->addSelect(DB::raw("'NON RACIKAN' AS JenisResep"))
+            ->whereNull('poh.ClosedDate')
+            ->where(function ($query) use ($startDate, $endDate, $location) {
+                $this->addWhereNotExistsQuery($query, $startDate, $endDate, $location)
+                    ->whereNull('poh.ClosedDate');
+            })
+            ->orderBy('DurationSeconds', 'desc')
+            ->limit(5)
+            ->get();
+
+        $results = [
+            'dataRacikans' => $dataRacikans,
+            'dataNonRacikans' => $dataNonRacikans
+        ];
 
         return $results;
     }
 
     /**
-     * Get five oldest order data when type is Racikan
+     * Get summary report of order data group by Dispensary
+     *
+     * @param string $startDate, $endDate
+     * @return array
+     */
+    function getSummaryOrderPharmacyGroupByLocation($startDate, $endDate, $location)
+    {
+        $baseQueryOrderByLocation = $this->getBaseQuery($startDate, $endDate, $location)
+            ->addSelect(
+                DB::raw("CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME) AS ClosedDateTime"),
+                DB::raw("CASE
+                    WHEN (poh.ClosedDate IS NOT NULL AND poh.SendOrderDateTime IS NOT NULL)
+                        THEN DATEDIFF(SECOND, poh.SendOrderDateTime, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
+                    WHEN (poh.ClosedDate IS NOT NULL AND pch.ProposedDate IS NOT NULL)
+                        THEN DATEDIFF(SECOND, pch.ProposedDate, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
+                    ELSE
+                        NULL
+                    END
+                AS DurationSeconds"),
+                DB::raw("CASE
+                    WHEN (sud.ServiceUnitName = 'FARMASI RAWAT INAP NON UDD')
+                        THEN 'FARMASI RANAP NON UDD'
+                    ELSE
+                        sud.ServiceUnitName
+                    END
+                AS Dispensary"),
+            );
+        // Subquery untuk Racikan
+        $racikan = (clone $baseQueryOrderByLocation)
+            ->addSelect((DB::raw("'RACIKAN' AS JenisResep")))
+            // ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
+            ->where('pod.IsCompound', 1);
+
+        // Subquery untuk Non-Racikan
+        $nonRacikan = (clone $baseQueryOrderByLocation)
+            ->addSelect((DB::raw("'NON RACIKAN' AS JenisResep")))
+            // ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
+            ->where(function ($query) use ($startDate, $endDate, $location) {
+                $this->addWhereNotExistsQuery($query, $startDate, $endDate, $location);
+                // ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
+            });
+
+        // Gabungkan kedua subquery dengan UNION ALL
+        $combinedOrders = $racikan->unionAll($nonRacikan);
+
+        // Lakukan agregasi pada hasil gabungan dari subquery
+        $results = DB::table(DB::raw("({$combinedOrders->toSql()}) as combined"))
+            ->mergeBindings($combinedOrders)
+            ->selectRaw("
+                combined.Dispensary AS LocationName,
+                COUNT(*) AS TotalOrder,
+                SUM(
+                    CASE
+                        WHEN combined.DurationSeconds IS NOT NULL
+                            THEN 1
+                        ELSE 0
+                    END
+                ) AS TotalOrderSelesai,
+                SUM(
+                    CASE
+                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationSeconds <= 3600 AND combined.JenisResep = 'RACIKAN')
+                            THEN 1
+                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationSeconds <= 1800 AND combined.JenisResep = 'NON RACIKAN')
+                            THEN 1
+                        ELSE 0
+                    END
+                ) AS TotalOrderOnTime,
+                SUM(
+                    CASE
+                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationSeconds > 3600 AND combined.JenisResep = 'RACIKAN')
+                            THEN 1
+                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationSeconds > 1800 AND combined.JenisResep = 'NON RACIKAN')
+                            THEN 1
+                        ELSE 0
+                    END
+                ) AS TotalOrderLateTime,
+                AVG(
+                    CASE
+                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                            THEN combined.DurationSeconds
+                        END
+                ) AS AverageDurationRacikan,
+                AVG(
+                    CASE
+                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                    THEN
+                        combined.DurationSeconds
+                    END
+                ) AS AverageDurationNonRacikan,
+                SUM(
+                    CASE
+                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                            THEN combined.DurationSeconds
+                    END
+                ) AS SumDurationRacikan,
+                SUM(
+                    CASE
+                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                    THEN
+                        combined.DurationSeconds
+                    END
+                ) AS SumDurationNonRacikan,
+                COUNT(
+                    CASE
+                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                            THEN combined.DurationSeconds
+                        END
+                ) AS CountDurationRacikan,
+                COUNT(
+                    CASE
+                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                            THEN
+                                combined.DurationSeconds
+                    END
+                ) AS CountDurationNonRacikan,
+                COUNT(*) AS TotalOrder,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL THEN 1 ELSE 0 END) AS TotalOrderUnClosed,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL AND combined.JenisResep = 'NON RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderNonRacikanUnClosed,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL AND combined.JenisResep = 'RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderRacikanUnClosed,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL THEN 1 ELSE 0 END) AS TotalOrderClosed,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL AND combined.JenisResep = 'NON RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderNonRacikanClosed,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL AND combined.JenisResep = 'RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderRacikanClosed
+            ")
+            ->groupBy('combined.Dispensary')
+            ->orderBy('combined.Dispensary')
+            ->get();
+        return $results;
+    }
+
+
+    /**
+     *  Get summary report of order data group by Payer Customer
      *
      * @param string $startDate, $endDate, $location
      * @return array
      */
-    function getFiveOldestOrderRacikanRajal($startDate, $endDate, $location)
+    function getSummaryOrderPharmacyRajalByPayer($startDate, $endDate, $location)
     {
-        $queryRacikan = DB::table('PrescriptionOrderHd as poh')
-            ->distinct()
-            ->select(DB::raw("poh.DispensaryServiceUnitID,
-            sud.ServiceUnitName as 'Dispensary',
-            su.ServiceUnitName as 'Poli',
-            CASE
-                WHEN poh.SendOrderDateTime IS NOT NULL
-                    THEN DATEDIFF(SECOND, poh.SendOrderDateTime, CURRENT_TIMESTAMP)
-                WHEN pch.ProposedDate IS NOT NULL
-                    THEN DATEDIFF(SECOND, pch.ProposedDate, CURRENT_TIMESTAMP)
-                ELSE
-                    NULL
-            END AS 'DurationMinutes',
-            r.RegistrationNo,
-            p.MedicalNo,
-            p.FullName as 'PatientName',
-            pm.FullName as 'Nama Dokter',
-            ua.FullName as 'Orderer',
-            sc2.StandardCodeName as 'StatusOrder',
-            poh.PrescriptionOrderID,
-            poh.PrescriptionOrderNo,
-            pch.TransactionID,
-            pch.TransactionNo,
-            poh.SendOrderDateTime,
-            pch.ProposedDate as ProposedDateTime,
-            ua2.FullName as 'User Propose',
-            poh.ClosedDate as ClosedDateFarmasi,
-            poh.ClosedTime as ClosedTimeFarmasi,
-            bp.BusinessPartnerID,
-            c.GCCustomerType,
-            sc.StandardCodeName as 'Penjamin',
-            bp.BusinessPartnerName,
-            pch.TotalAmount,
-            poh.CreatedDate,
-            sc3.StandardCodeName as 'StatusTransaksi',
-            poh.PrescriptionDate,
-            pod.IsCompound,
-            'RACIKAN' as 'JenisResep'
-        "))
-            ->join('PrescriptionOrderDt as pod', 'poh.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
-            ->leftJoin('PatientChargesHd as pch', function ($join) {
-                $join->on('poh.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
-                    ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
-            })
-            ->join('ConsultVisit as cv', 'poh.VisitID', '=', 'cv.VisitID')
-            ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
-            ->join('Patient as p', 'r.MRN', '=', 'p.MRN')
-            ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
-            ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
-            ->join('StandardCode as sc', 'c.GCCustomerType', '=', 'sc.StandardCodeID')
-            ->join('StandardCode as sc2', 'poh.GCTransactionStatus', '=', 'sc2.StandardCodeID')
-            ->leftJoin('StandardCode as sc3', 'pch.GCTransactionStatus', '=', 'sc3.StandardCodeID')
-            ->join('HealthcareServiceUnit as hsu', 'cv.HealthcareServiceUnitID', '=', 'hsu.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as su', 'hsu.ServiceUnitID', '=', 'su.ServiceUnitID')
-            ->join('HealthcareServiceUnit as hsud', 'poh.DispensaryServiceUnitID', '=', 'hsud.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as sud', 'hsud.ServiceUnitID', '=', 'sud.ServiceUnitID')
-            ->join('ParamedicMaster as pm', 'poh.ParamedicID', '=', 'pm.ParamedicID')
-            ->join('UserAttribute as ua', 'poh.CreatedBy', '=', 'ua.UserID')
-            ->leftJoin('UserAttribute as ua2', 'pch.ProposedBy', '=', 'ua2.UserID')
-            ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
-            ->where('poh.DispensaryServiceUnitID', $location)
-            ->whereNot('pch.TotalAmount', '=', '.00')
-            ->whereNotIn('r.MRN', [10, 527556])
-            ->whereNotIn('poh.GCTransactionStatus', ['X121^999'])
-            ->where('pod.IsCompound', 1)
-            ->whereNull('poh.ClosedDate');
+        $baseQueryOrderByPayer = $this->getBaseQuery($startDate, $endDate, $location)
+            ->addSelect(
+                'sud.ServiceUnitName as Dispensary',
+                DB::raw("CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME) AS ClosedDateTime"),
+                DB::raw("CASE
+                            WHEN (poh.ClosedDate IS NOT NULL AND poh.SendOrderDateTime IS NOT NULL)
+                                THEN DATEDIFF(SECOND, poh.SendOrderDateTime, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
+                            WHEN (poh.ClosedDate IS NOT NULL AND pch.ProposedDate IS NOT NULL)
+                                THEN DATEDIFF(SECOND, pch.ProposedDate, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
+                            ELSE
+                                NULL
+                        END
+                    AS DurationSeconds"),
+                DB::raw("CASE
+                            WHEN c.GCCustomerType = 'X004^500'
+                                THEN 'BPJS - Kemenkes'
+                            WHEN c.GCCustomerType IN ('X004^999', 'X004^251', 'X004^300')
+                                THEN 'Personal'
+                            WHEN c.GCCustomerType IN ('X004^100', 'X004^200')
+                                THEN 'Asuransi'
+                        END
+                    AS PenjaminGroup")
+            );
 
-        $results = $queryRacikan->orderBy('DurationMinutes', 'desc')->limit(5)->get();
+        // Subquery untuk Racikan
+        $racikan = (clone $baseQueryOrderByPayer)
+            ->addSelect((DB::raw("'RACIKAN' AS JenisResep")))
+            // ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
+            ->where('pod.IsCompound', 1);
+
+        // Subquery untuk Non-Racikan
+        $nonRacikan = (clone $baseQueryOrderByPayer)
+            ->addSelect((DB::raw("'NON RACIKAN' AS JenisResep")))
+            ->where(function ($query) use ($startDate, $endDate, $location) {
+                $this->addWhereNotExistsQuery($query, $startDate, $endDate, $location);
+                // ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
+            });
+
+        // Gabungkan kedua subquery dengan UNION ALL
+        $combinedOrders = $racikan->unionAll($nonRacikan);
+
+        // Lakukan agregasi pada hasil gabungan dari subquery
+        $results = DB::table(DB::raw("({$combinedOrders->toSql()}) as combined"))
+            ->mergeBindings($combinedOrders)
+            ->selectRaw("
+                combined.PenjaminGroup AS CustomerType,
+                COUNT(*) AS TotalOrder,
+                SUM(
+                    CASE
+                        WHEN combined.DurationSeconds IS NOT NULL
+                            THEN 1
+                        ELSE 0
+                    END
+                ) AS TotalOrderSelesai,
+                SUM(
+                    CASE
+                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationSeconds <= 3600 AND combined.JenisResep = 'RACIKAN')
+                            THEN 1
+                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationSeconds <= 1800 AND combined.JenisResep = 'NON RACIKAN')
+                            THEN 1
+                        ELSE 0
+                    END
+                ) AS TotalOrderOnTime,
+                SUM(
+                    CASE
+                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationSeconds > 3600 AND combined.JenisResep = 'RACIKAN')
+                            THEN 1
+                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationSeconds > 1800 AND combined.JenisResep = 'NON RACIKAN')
+                            THEN 1
+                        ELSE 0
+                    END
+                ) AS TotalOrderLateTime,
+                AVG(
+                    CASE
+                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                            THEN combined.DurationSeconds
+                        END
+                ) AS AverageDurationRacikan,
+                AVG(
+                    CASE
+                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                    THEN
+                        combined.DurationSeconds
+                    END
+                ) AS AverageDurationNonRacikan,
+                SUM(
+                    CASE
+                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                            THEN combined.DurationSeconds
+                    END
+                ) AS SumDurationRacikan,
+                SUM(
+                    CASE
+                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                    THEN
+                        combined.DurationSeconds
+                    END
+                ) AS SumDurationNonRacikan,
+                COUNT(
+                    CASE
+                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                            THEN combined.DurationSeconds
+                        END
+                ) AS CountDurationRacikan,
+                COUNT(
+                    CASE
+                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationSeconds IS NOT NULL)
+                            THEN
+                                combined.DurationSeconds
+                    END
+                ) AS CountDurationNonRacikan,
+                COUNT(*) AS TotalOrder,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL THEN 1 ELSE 0 END) AS TotalOrderUnClosed,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL AND combined.JenisResep = 'NON RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderNonRacikanUnClosed,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL AND combined.JenisResep = 'RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderRacikanUnClosed,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL THEN 1 ELSE 0 END) AS TotalOrderClosed,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL AND combined.JenisResep = 'NON RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderNonRacikanClosed,
+                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL AND combined.JenisResep = 'RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderRacikanClosed            ")
+            ->groupBy('combined.PenjaminGroup')
+            ->orderBy('combined.PenjaminGroup')
+            ->get();
         return $results;
     }
 
@@ -213,65 +441,16 @@ class Pharmacy extends Model
         $sortBy,
         $jenisOrder,
     ) {
-        $queryRacikan = DB::table('PrescriptionOrderHd as poh')
-            ->select(DB::raw("
-            DISTINCT poh.DispensaryServiceUnitID,
-            sud.ServiceUnitName as 'Dispensary',
-            su.ServiceUnitName as 'Poli',
-            r.RegistrationNo,
-            p.MedicalNo,
-            p.FullName as 'PatientName',
-            pm.FullName as 'Nama Dokter',
-            ua.FullName as 'Orderer',
-            sc2.StandardCodeName as 'StatusOrder',
-            poh.PrescriptionOrderID,
-            poh.PrescriptionOrderNo,
-            pch.TransactionID,
-            pch.TransactionNo,
-            poh.SendOrderDateTime,
-            pch.ProposedDate as ProposedDateTime,
-            ua2.FullName as 'User Propose',
-            poh.ClosedDate as ClosedDateFarmasi,
-            poh.ClosedTime as ClosedTimeFarmasi,
-            bp.BusinessPartnerID,
-            c.GCCustomerType,
-            sc.StandardCodeName as 'Penjamin',
-            bp.BusinessPartnerName,
-            pch.TotalAmount,
-            poh.CreatedDate,
-            sc3.StandardCodeName as 'StatusTransaksi',
-            poh.PrescriptionDate,
-            pod.IsCompound,
-            'RACIKAN' as 'JenisResep'
-        "))
-            ->join('PrescriptionOrderDt as pod', 'poh.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
-            ->leftJoin('PatientChargesHd as pch', function ($join) {
-                $join->on('poh.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
-                    ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
-            })
-            ->join('ConsultVisit as cv', 'poh.VisitID', '=', 'cv.VisitID')
-            ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
-            ->join('Patient as p', 'r.MRN', '=', 'p.MRN')
-            ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
-            ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
-            ->join('StandardCode as sc', function ($join) {
-                $join->on('c.GCCustomerType', '=', 'sc.StandardCodeID')
-                    ->whereNotIn('c.GCCustomerType', ['X004^250', 'X004^201', 'X004^400']);
-            })
-            ->join('StandardCode as sc2', 'poh.GCTransactionStatus', '=', 'sc2.StandardCodeID')
-            ->leftJoin('StandardCode as sc3', 'pch.GCTransactionStatus', '=', 'sc3.StandardCodeID')
-            ->join('HealthcareServiceUnit as hsu', 'cv.HealthcareServiceUnitID', '=', 'hsu.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as su', 'hsu.ServiceUnitID', '=', 'su.ServiceUnitID')
-            ->join('HealthcareServiceUnit as hsud', 'poh.DispensaryServiceUnitID', '=', 'hsud.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as sud', 'hsud.ServiceUnitID', '=', 'sud.ServiceUnitID')
-            ->join('ParamedicMaster as pm', 'poh.ParamedicID', '=', 'pm.ParamedicID')
-            ->join('UserAttribute as ua', 'poh.CreatedBy', '=', 'ua.UserID')
-            ->leftJoin('UserAttribute as ua2', 'pch.ProposedBy', '=', 'ua2.UserID')
-            ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
-            ->where('poh.DispensaryServiceUnitID', $location)
-            ->whereNot('pch.TotalAmount', '=', '.00')
-            ->whereNotIn('r.MRN', [10, 527556])
-            ->whereNotIn('poh.GCTransactionStatus', ['X121^999']);
+
+        $baseQueryListOrder = $this
+            ->getBaseQuery($startDate, $endDate, $location)
+            ->addSelect(
+                'sud.ServiceUnitName as Dispensary',
+            );
+
+        $queryRacikan = (clone $baseQueryListOrder)
+            ->addSelect(DB::raw("'RACIKAN' AS JenisResep"))
+            ->where('pod.IsCompound', 1);
 
         //Cek apakah ada paramter statusOrder, 1 = Open, 2 = Closed, all = semua
         if ($statusOrder !== 'all') {
@@ -309,66 +488,8 @@ class Pharmacy extends Model
         $queryRacikan->where('pod.IsCompound', 1);
 
         // Query untuk resep non-racikan
-        $queryNonRacikan = DB::table('PrescriptionOrderHd as poh')
-            ->select(DB::raw("
-            DISTINCT poh.DispensaryServiceUnitID,
-            sud.ServiceUnitName as 'Dispensary',
-            su.ServiceUnitName as 'Poli',
-            r.RegistrationNo,
-            p.MedicalNo,
-            p.FullName as 'PatientName',
-            pm.FullName as 'Nama Dokter',
-            ua.FullName as 'Orderer',
-            sc2.StandardCodeName as 'StatusOrder',
-            poh.PrescriptionOrderID,
-            poh.PrescriptionOrderNo,
-            pch.TransactionID,
-            pch.TransactionNo,
-            poh.SendOrderDateTime,
-            pch.ProposedDate as ProposedDateTime,
-            ua2.FullName as 'User Propose',
-            poh.ClosedDate as ClosedDateFarmasi,
-            poh.ClosedTime as ClosedTimeFarmasi,
-            bp.BusinessPartnerID,
-            c.GCCustomerType,
-            sc.StandardCodeName as 'Penjamin',
-            bp.BusinessPartnerName,
-            pch.TotalAmount,
-            poh.CreatedDate,
-            sc3.StandardCodeName as 'StatusTransaksi',
-            poh.PrescriptionDate,
-            pod.IsCompound,
-            'NON RACIKAN' as 'JenisResep'
-        "))
-            ->join('PrescriptionOrderDt as pod', 'poh.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
-
-            ->leftJoin('PatientChargesHd as pch', function ($join) {
-                $join->on('poh.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
-                    ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
-            })
-            ->join('ConsultVisit as cv', 'poh.VisitID', '=', 'cv.VisitID')
-            ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
-            ->join('Patient as p', 'r.MRN', '=', 'p.MRN')
-            ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
-            ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
-            ->join('StandardCode as sc', function ($join) {
-                $join->on('c.GCCustomerType', '=', 'sc.StandardCodeID')
-                    ->whereNotIn('c.GCCustomerType', ['X004^250', 'X004^201', 'X004^400']);
-            })
-            ->join('StandardCode as sc2', 'poh.GCTransactionStatus', '=', 'sc2.StandardCodeID')
-            ->leftJoin('StandardCode as sc3', 'pch.GCTransactionStatus', '=', 'sc3.StandardCodeID')
-            ->join('HealthcareServiceUnit as hsu', 'cv.HealthcareServiceUnitID', '=', 'hsu.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as su', 'hsu.ServiceUnitID', '=', 'su.ServiceUnitID')
-            ->join('HealthcareServiceUnit as hsud', 'poh.DispensaryServiceUnitID', '=', 'hsud.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as sud', 'hsud.ServiceUnitID', '=', 'sud.ServiceUnitID')
-            ->join('ParamedicMaster as pm', 'poh.ParamedicID', '=', 'pm.ParamedicID')
-            ->join('UserAttribute as ua', 'poh.CreatedBy', '=', 'ua.UserID')
-            ->leftJoin('UserAttribute as ua2', 'pch.ProposedBy', '=', 'ua2.UserID')
-            ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
-            ->where('poh.DispensaryServiceUnitID', $location)
-            ->whereNot('pch.TotalAmount', '=', '.00') //Tidak di ambil
-            ->whereNotIn('r.MRN', [10, 527556]) // MRN 10 dan 527556 adalah MRN dari Klink Teduh
-            ->whereNotIn('poh.GCTransactionStatus', ['X121^999']) //Status Transaksi di void
+        $queryNonRacikan = (clone $baseQueryListOrder) //Status Transaksi di void
+            ->addSelect(DB::raw("'NON RACIKAN' AS JenisResep"))
             ->whereNotExists(function ($query) use ($startDate, $endDate, $location, $customerType, $statusOrder) {
                 //Cari order yang tidak mengandung racikan
                 $query->select(DB::raw(1))
@@ -478,542 +599,6 @@ class Pharmacy extends Model
                 'search' => $search
             ]);
 
-        return $results;
-    }
-
-
-    /**
-     * Get summary report of order data group by Dispensary
-     *
-     * @param string $startDate, $endDate
-     * @return array
-     */
-    function getSummaryOrderPharmacyGroupByLocation($startDate, $endDate, $location)
-    {
-        // Subquery untuk Racikan
-        $racikan = DB::table('PrescriptionOrderHd as poh')
-            ->select(DB::raw("
-            DISTINCT poh.DispensaryServiceUnitID,
-            CASE
-                WHEN (sud.ServiceUnitName = 'FARMASI RAWAT INAP NON UDD')
-                    THEN 'FARMASI RANAP NON UDD'
-                ELSE
-                    sud.ServiceUnitName
-                END
-            AS 'Dispensary',
-            CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME) AS 'ClosedDateTime',
-            CASE
-                WHEN (poh.ClosedDate IS NOT NULL AND poh.SendOrderDateTime IS NOT NULL)
-                    THEN DATEDIFF(SECOND, poh.SendOrderDateTime, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
-                WHEN (poh.ClosedDate IS NOT NULL AND pch.ProposedDate IS NOT NULL)
-                    THEN DATEDIFF(SECOND, pch.ProposedDate, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
-                ELSE
-                    NULL
-            END AS 'DurationMinutes',
-            su.ServiceUnitName as 'Poli',
-            r.RegistrationNo,
-            p.MedicalNo,
-            p.FullName as 'PatientName',
-            pm.FullName as 'Nama Dokter',
-            ua.FullName as 'Orderer',
-            sc2.StandardCodeName as 'StatusOrder',
-            poh.PrescriptionOrderID,
-            poh.PrescriptionOrderNo,
-            pch.TransactionID,
-            pch.TransactionNo,
-            poh.SendOrderDateTime,
-            pch.ProposedDate as ProposedDateTime,
-            ua2.FullName as 'User Propose',
-            poh.ClosedDate as ClosedDateFarmasi,
-            poh.ClosedTime as ClosedTimeFarmasi,
-            bp.BusinessPartnerID,
-            c.GCCustomerType,
-            sc.StandardCodeName as 'Penjamin',
-            bp.BusinessPartnerName,
-            pch.TotalAmount,
-            poh.CreatedDate,
-            sc3.StandardCodeName as 'StatusTransaksi',
-            'RACIKAN' as 'JenisResep'
-        "))
-            ->join('PrescriptionOrderDt as pod', 'poh.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
-            ->leftJoin('PatientChargesHd as pch', function ($join) {
-                $join->on('poh.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
-                    ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
-            })
-            ->join('ConsultVisit as cv', 'poh.VisitID', '=', 'cv.VisitID')
-            ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
-            ->join('Patient as p', 'r.MRN', '=', 'p.MRN')
-            ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
-            ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
-            ->join('StandardCode as sc', function ($join) {
-                $join->on('c.GCCustomerType', '=', 'sc.StandardCodeID')
-                    ->whereNotIn('c.GCCustomerType', ['X004^250', 'X004^201', 'X004^400']);
-            })
-            ->join('StandardCode as sc2', 'poh.GCTransactionStatus', '=', 'sc2.StandardCodeID')
-            ->leftJoin('StandardCode as sc3', 'pch.GCTransactionStatus', '=', 'sc3.StandardCodeID')
-            ->join('HealthcareServiceUnit as hsu', 'cv.HealthcareServiceUnitID', '=', 'hsu.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as su', 'hsu.ServiceUnitID', '=', 'su.ServiceUnitID')
-            ->join('HealthcareServiceUnit as hsud', 'poh.DispensaryServiceUnitID', '=', 'hsud.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as sud', 'hsud.ServiceUnitID', '=', 'sud.ServiceUnitID')
-            ->join('ParamedicMaster as pm', 'poh.ParamedicID', '=', 'pm.ParamedicID')
-            ->join('UserAttribute as ua', 'poh.CreatedBy', '=', 'ua.UserID')
-            ->leftJoin('UserAttribute as ua2', 'pch.ProposedBy', '=', 'ua2.UserID')
-            ->whereBetween('poh.CreatedDate', [$startDate, $endDate])
-            ->whereNotIn('poh.GCTransactionStatus', ['X121^999'])
-            ->whereNot('pch.TotalAmount', '=', '.00')
-            ->whereNotIn('r.MRN', [10, 527556])
-            ->where('poh.DispensaryServiceUnitID', $location)
-            ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
-            ->where('pod.IsCompound', 1);
-
-        // Subquery untuk Non-Racikan
-        $nonRacikan = DB::table('PrescriptionOrderHd as poh')
-            ->select(DB::raw("
-            DISTINCT poh.DispensaryServiceUnitID,
-            CASE
-                WHEN (sud.ServiceUnitName = 'FARMASI RAWAT INAP NON UDD')
-                    THEN 'FARMASI RANAP NON UDD'
-                ELSE
-                    sud.ServiceUnitName
-            END AS 'Dispensary',
-            CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME) AS 'ClosedDateTime',
-            CASE
-                WHEN (poh.ClosedDate IS NOT NULL AND poh.SendOrderDateTime IS NOT NULL)
-                    THEN DATEDIFF(SECOND, poh.SendOrderDateTime, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
-                WHEN (poh.ClosedDate IS NOT NULL AND pch.ProposedDate IS NOT NULL)
-                    THEN DATEDIFF(SECOND, pch.ProposedDate, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
-                ELSE
-                    NULL
-            END AS 'DurationMinutes',
-            su.ServiceUnitName as 'Poli',
-            r.RegistrationNo,
-            p.MedicalNo,
-            p.FullName as 'PatientName',
-            pm.FullName as 'Nama Dokter',
-            ua.FullName as 'User Buat',
-            sc2.StandardCodeName as 'StatusOrder',
-            poh.PrescriptionOrderID,
-            poh.PrescriptionOrderNo,
-            pch.TransactionID,
-            pch.TransactionNo,
-            poh.SendOrderDateTime,
-            pch.ProposedDate as ProposedDateTime,
-            ua2.FullName as 'User Propose',
-            poh.ClosedDate as ClosedDateFarmasi,
-            poh.ClosedTime as ClosedTimeFarmasi,
-            bp.BusinessPartnerID,
-            c.GCCustomerType,
-            sc.StandardCodeName as 'Penjamin',
-            bp.BusinessPartnerName,
-            pch.TotalAmount,
-            poh.CreatedDate,
-            sc3.StandardCodeName as 'StatusTransaksi',
-            'NON RACIKAN' as 'JenisResep'
-        "))
-            ->leftJoin('PatientChargesHd as pch', function ($join) {
-                $join->on('poh.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
-                    ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
-            })
-            ->join('ConsultVisit as cv', 'poh.VisitID', '=', 'cv.VisitID')
-            ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
-            ->join('Patient as p', 'r.MRN', '=', 'p.MRN')
-            ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
-            ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
-            ->join('StandardCode as sc', function ($join) {
-                $join->on('c.GCCustomerType', '=', 'sc.StandardCodeID')
-                    ->whereNotIn('c.GCCustomerType', ['X004^250', 'X004^201', 'X004^400']);
-            })
-            ->join('StandardCode as sc2', 'poh.GCTransactionStatus', '=', 'sc2.StandardCodeID')
-            ->leftJoin('StandardCode as sc3', 'pch.GCTransactionStatus', '=', 'sc3.StandardCodeID')
-            ->join('HealthcareServiceUnit as hsu', 'cv.HealthcareServiceUnitID', '=', 'hsu.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as su', 'hsu.ServiceUnitID', '=', 'su.ServiceUnitID')
-            ->join('HealthcareServiceUnit as hsud', 'poh.DispensaryServiceUnitID', '=', 'hsud.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as sud', 'hsud.ServiceUnitID', '=', 'sud.ServiceUnitID')
-            ->join('ParamedicMaster as pm', 'poh.ParamedicID', '=', 'pm.ParamedicID')
-            ->join('UserAttribute as ua', 'poh.CreatedBy', '=', 'ua.UserID')
-            ->leftJoin('UserAttribute as ua2', 'pch.ProposedBy', '=', 'ua2.UserID')
-            ->whereBetween('poh.CreatedDate', [$startDate, $endDate])
-            ->whereNotIn('poh.GCTransactionStatus', ['X121^999'])
-            ->whereNot('pch.TotalAmount', '=', '.00')
-            ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
-            ->where('poh.DispensaryServiceUnitID', $location)
-            ->whereNotIn('r.MRN', [10, 527556])
-            ->whereNotExists(function ($query) use ($startDate, $endDate, $location) {
-                $query->select(DB::raw(1))
-                    ->from('PrescriptionOrderHd as poh_inner')
-                    ->join('PrescriptionOrderDt as pod_inner', 'poh_inner.PrescriptionOrderID', '=', 'pod_inner.PrescriptionOrderID')
-                    ->leftJoin('PatientChargesHd as pch_inner', function ($join) {
-                        $join->on('poh_inner.PrescriptionOrderID', '=', 'pch_inner.PrescriptionOrderID')
-                            ->whereNotIn('pch_inner.GCTransactionStatus', ['X121^999']);
-                    })
-                    ->join('ConsultVisit as cv_inner', 'poh_inner.VisitID', '=', 'cv_inner.VisitID')
-                    ->join('Registration as r_inner', 'cv_inner.RegistrationID', '=', 'r_inner.RegistrationID')
-                    ->join('BusinessPartners as bp_inner', 'r_inner.BusinessPartnerID', '=', 'bp_inner.BusinessPartnerID')
-                    ->join('Customer as c_inner', 'bp_inner.BusinessPartnerID', '=', 'c_inner.BusinessPartnerID')
-                    ->whereBetween('poh.CreatedDate', [$startDate, $endDate])
-                    ->whereNotIn('poh_inner.GCTransactionStatus', ['X121^999'])
-                    ->whereNot('pch.TotalAmount', '=', '.00')
-                    ->whereNotIn('r.MRN', [10, 527556])
-                    ->where('pod_inner.IsCompound', 1)
-                    ->where('poh.DispensaryServiceUnitID', $location)
-                    ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
-                    ->whereColumn('poh.PrescriptionOrderID', 'poh_inner.PrescriptionOrderID');
-            });
-
-        // Gabungkan kedua subquery dengan UNION ALL
-        $combinedOrders = $racikan->unionAll($nonRacikan);
-
-        // Lakukan agregasi pada hasil gabungan dari subquery
-        $results = DB::table(DB::raw("({$combinedOrders->toSql()}) as combined"))
-            ->mergeBindings($combinedOrders)
-            ->selectRaw("
-                combined.Dispensary AS LocationName,
-                combined.DispensaryServiceUnitID,
-                COUNT(*) AS TotalOrder,
-                SUM(
-                    CASE
-                        WHEN combined.DurationMinutes IS NOT NULL
-                            THEN 1
-                        ELSE 0
-                    END
-                ) AS TotalOrderSelesai,
-                SUM(
-                    CASE
-                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationMinutes <= 3600 AND combined.JenisResep = 'RACIKAN')
-                            THEN 1
-                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationMinutes <= 1800 AND combined.JenisResep = 'NON RACIKAN')
-                            THEN 1
-                        ELSE 0
-                    END
-                ) AS TotalOrderOnTime,
-                SUM(
-                    CASE
-                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationMinutes > 3600 AND combined.JenisResep = 'RACIKAN')
-                            THEN 1
-                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationMinutes > 1800 AND combined.JenisResep = 'NON RACIKAN')
-                            THEN 1
-                        ELSE 0
-                    END
-                ) AS TotalOrderLateTime,
-                AVG(
-                    CASE
-                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                            THEN combined.DurationMinutes
-                        END
-                ) AS AverageDurationRacikan,
-                AVG(
-                    CASE
-                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                    THEN
-                        combined.DurationMinutes
-                    END
-                ) AS AverageDurationNonRacikan,
-                SUM(
-                    CASE
-                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                            THEN combined.DurationMinutes
-                    END
-                ) AS SumDurationRacikan,
-                SUM(
-                    CASE
-                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                    THEN
-                        combined.DurationMinutes
-                    END
-                ) AS SumDurationNonRacikan,
-                COUNT(
-                    CASE
-                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                            THEN combined.DurationMinutes
-                        END
-                ) AS CountDurationRacikan,
-                COUNT(
-                    CASE
-                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                            THEN
-                                combined.DurationMinutes
-                    END
-                ) AS CountDurationNonRacikan,
-                COUNT(*) AS TotalOrder,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL THEN 1 ELSE 0 END) AS TotalOrderUnClosed,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL AND combined.JenisResep = 'NON RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderNonRacikanUnClosed,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL AND combined.JenisResep = 'RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderRacikanUnClosed,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL THEN 1 ELSE 0 END) AS TotalOrderClosed,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL AND combined.JenisResep = 'NON RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderNonRacikanClosed,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL AND combined.JenisResep = 'RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderRacikanClosed
-            ")
-            ->groupBy('combined.DispensaryServiceUnitID')
-            ->groupBy('combined.Dispensary')
-            ->orderBy('combined.Dispensary')
-            ->get();
-        return $results;
-    }
-
-
-    /**
-     *  Get summary report of order data group by Payer Customer
-     *
-     * @param string $startDate, $endDate, $location
-     * @return array
-     */
-    function getSummaryOrderPharmacyRajalByPayer($startDate, $endDate, $location)
-    {
-        // Subquery untuk Racikan
-        $racikan = DB::table('PrescriptionOrderHd as poh')
-            ->distinct()
-            ->select(DB::raw("
-                poh.DispensaryServiceUnitID,
-                sud.ServiceUnitName as 'Dispensary',
-                CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME) AS 'ClosedDateTime',
-                CASE
-                    WHEN (poh.ClosedDate IS NOT NULL AND poh.SendOrderDateTime IS NOT NULL)
-                        THEN DATEDIFF(SECOND, poh.SendOrderDateTime, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
-                    WHEN (poh.ClosedDate IS NOT NULL AND pch.ProposedDate IS NOT NULL)
-                        THEN DATEDIFF(SECOND, pch.ProposedDate, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
-                    ELSE
-                        NULL
-                END AS 'DurationMinutes',
-                CASE
-                    WHEN c.GCCustomerType = 'X004^500'
-                        THEN 'BPJS - Kemenkes'
-                    WHEN c.GCCustomerType IN ('X004^999', 'X004^251', 'X004^300')
-                        THEN 'Personal'
-                    WHEN c.GCCustomerType IN ('X004^100', 'X004^200')
-                        THEN 'Asuransi'
-                END AS PenjaminGroup,
-                su.ServiceUnitName as 'Poli',
-                r.RegistrationNo,
-                p.MedicalNo,
-                p.FullName as 'PatientName',
-                pm.FullName as 'Nama Dokter',
-                ua.FullName as 'Orderer',
-                sc2.StandardCodeName as 'StatusOrder',
-                poh.PrescriptionOrderID,
-                poh.PrescriptionOrderNo,
-                pch.TransactionID,
-                pch.TransactionNo,
-                poh.SendOrderDateTime,
-                pch.ProposedDate as ProposedDateTime,
-                ua2.FullName as 'User Propose',
-                poh.ClosedDate as ClosedDateFarmasi,
-                poh.ClosedTime as ClosedTimeFarmasi,
-                bp.BusinessPartnerID,
-                c.GCCustomerType,
-                sc.StandardCodeName as 'Penjamin',
-                bp.BusinessPartnerName,
-                pch.TotalAmount,
-                poh.CreatedDate,
-                sc3.StandardCodeName as 'StatusTransaksi',
-                'RACIKAN' as 'JenisResep'"))
-            ->join('PrescriptionOrderDt as pod', 'poh.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
-            ->leftJoin('PatientChargesHd as pch', function ($join) {
-                $join->on('poh.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
-                    ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
-            })
-            ->join('ConsultVisit as cv', 'poh.VisitID', '=', 'cv.VisitID')
-            ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
-            ->join('Patient as p', 'r.MRN', '=', 'p.MRN')
-            ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
-            ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
-            ->join('StandardCode as sc', function ($join) {
-                $join->on('c.GCCustomerType', '=', 'sc.StandardCodeID')
-                    ->whereNotIn('c.GCCustomerType', ['X004^250', 'X004^201', 'X004^400']);
-            })
-            ->join('StandardCode as sc2', 'poh.GCTransactionStatus', '=', 'sc2.StandardCodeID')
-            ->leftJoin('StandardCode as sc3', 'pch.GCTransactionStatus', '=', 'sc3.StandardCodeID')
-            ->join('HealthcareServiceUnit as hsu', 'cv.HealthcareServiceUnitID', '=', 'hsu.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as su', 'hsu.ServiceUnitID', '=', 'su.ServiceUnitID')
-            ->join('HealthcareServiceUnit as hsud', 'poh.DispensaryServiceUnitID', '=', 'hsud.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as sud', 'hsud.ServiceUnitID', '=', 'sud.ServiceUnitID')
-            ->join('ParamedicMaster as pm', 'poh.ParamedicID', '=', 'pm.ParamedicID')
-            ->join('UserAttribute as ua', 'poh.CreatedBy', '=', 'ua.UserID')
-            ->leftJoin('UserAttribute as ua2', 'pch.ProposedBy', '=', 'ua2.UserID')
-            ->whereBetween('poh.CreatedDate', [$startDate, $endDate])
-            ->where('poh.DispensaryServiceUnitID', $location)
-            ->whereNot('pch.TotalAmount', '=', '.00')
-            ->whereNotIn('r.MRN', [10, 527556])
-            ->whereNotIn('poh.GCTransactionStatus', ['X121^999'])
-            ->where('pod.IsCompound', 1);
-
-        // Subquery untuk Non-Racikan
-        $nonRacikan = DB::table('PrescriptionOrderHd as poh')
-            ->distinct()
-            ->select(DB::raw("
-                poh.DispensaryServiceUnitID,
-                sud.ServiceUnitName as 'Dispensary',
-                CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME) AS 'ClosedDateTime',
-                CASE
-                    WHEN (poh.ClosedDate IS NOT NULL AND poh.SendOrderDateTime IS NOT NULL)
-                        THEN DATEDIFF(SECOND, poh.SendOrderDateTime, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
-                    WHEN (poh.ClosedDate IS NOT NULL AND pch.ProposedDate IS NOT NULL)
-                        THEN DATEDIFF(SECOND, pch.ProposedDate, CAST(poh.ClosedDate AS DATETIME) + CAST(poh.ClosedTime AS TIME))
-                    ELSE
-                        NULL
-                END AS 'DurationMinutes',
-                CASE
-                    WHEN c.GCCustomerType = 'X004^500'
-                        THEN 'BPJS - Kemenkes'
-                    WHEN c.GCCustomerType IN ('X004^999', 'X004^251', 'X004^300')
-                        THEN 'Personal'
-                    WHEN c.GCCustomerType IN ('X004^100', 'X004^200')
-                        THEN 'Asuransi'
-                END AS PenjaminGroup,
-                su.ServiceUnitName as 'Poli',
-                r.RegistrationNo,
-                p.MedicalNo,
-                p.FullName as 'PatientName',
-                pm.FullName as 'Nama Dokter',
-                ua.FullName as 'User Buat',
-                sc2.StandardCodeName as 'StatusOrder',
-                poh.PrescriptionOrderID,
-                poh.PrescriptionOrderNo,
-                pch.TransactionID,
-                pch.TransactionNo,
-                poh.SendOrderDateTime,
-                pch.ProposedDate as ProposedDateTime,
-                ua2.FullName as 'User Propose',
-                poh.ClosedDate as ClosedDateFarmasi,
-                poh.ClosedTime as ClosedTimeFarmasi,
-                bp.BusinessPartnerID,
-                c.GCCustomerType,
-                sc.StandardCodeName as 'Penjamin',
-                bp.BusinessPartnerName,
-                pch.TotalAmount,
-                poh.CreatedDate,
-                sc3.StandardCodeName as 'StatusTransaksi',
-                'NON RACIKAN' as 'JenisResep'
-            "))
-            ->leftJoin('PatientChargesHd as pch', function ($join) {
-                $join->on('poh.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
-                    ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
-            })
-            ->join('ConsultVisit as cv', 'poh.VisitID', '=', 'cv.VisitID')
-            ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
-            ->join('Patient as p', 'r.MRN', '=', 'p.MRN')
-            ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
-            ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
-            ->join('StandardCode as sc', function ($join) {
-                $join->on('c.GCCustomerType', '=', 'sc.StandardCodeID')
-                    ->whereNotIn('c.GCCustomerType', ['X004^250', 'X004^201', 'X004^400']);
-            })
-            ->join('StandardCode as sc2', 'poh.GCTransactionStatus', '=', 'sc2.StandardCodeID')
-            ->leftJoin('StandardCode as sc3', 'pch.GCTransactionStatus', '=', 'sc3.StandardCodeID')
-            ->join('HealthcareServiceUnit as hsu', 'cv.HealthcareServiceUnitID', '=', 'hsu.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as su', 'hsu.ServiceUnitID', '=', 'su.ServiceUnitID')
-            ->join('HealthcareServiceUnit as hsud', 'poh.DispensaryServiceUnitID', '=', 'hsud.HealthcareServiceUnitID')
-            ->join('ServiceUnitMaster as sud', 'hsud.ServiceUnitID', '=', 'sud.ServiceUnitID')
-            ->join('ParamedicMaster as pm', 'poh.ParamedicID', '=', 'pm.ParamedicID')
-            ->join('UserAttribute as ua', 'poh.CreatedBy', '=', 'ua.UserID')
-            ->leftJoin('UserAttribute as ua2', 'pch.ProposedBy', '=', 'ua2.UserID')
-            ->whereBetween('poh.CreatedDate', [$startDate, $endDate])
-            ->where('poh.DispensaryServiceUnitID', $location)
-            ->whereNotIn('poh.GCTransactionStatus', ['X121^999'])
-            ->whereNot('pch.TotalAmount', '=', '.00')
-            ->whereNotIn('r.MRN', [10, 527556])
-            ->whereNotExists(function ($query) use ($startDate, $endDate, $location) {
-                $query->select(DB::raw(1))
-                    ->from('PrescriptionOrderHd as poh_inner')
-                    ->join('PrescriptionOrderDt as pod_inner', 'poh_inner.PrescriptionOrderID', '=', 'pod_inner.PrescriptionOrderID')
-                    ->leftJoin('PatientChargesHd as pch_inner', function ($join) {
-                        $join->on('poh_inner.PrescriptionOrderID', '=', 'pch_inner.PrescriptionOrderID')
-                            ->whereNotIn('pch_inner.GCTransactionStatus', ['X121^999']);
-                    })
-                    ->join('ConsultVisit as cv_inner', 'poh_inner.VisitID', '=', 'cv_inner.VisitID')
-                    ->join('Registration as r_inner', 'cv_inner.RegistrationID', '=', 'r_inner.RegistrationID')
-                    ->join('BusinessPartners as bp_inner', 'r_inner.BusinessPartnerID', '=', 'bp_inner.BusinessPartnerID')
-                    ->join('Customer as c_inner', 'bp_inner.BusinessPartnerID', '=', 'c_inner.BusinessPartnerID')
-                    ->whereBetween('poh.CreatedDate', [$startDate, $endDate])
-                    ->where('poh_inner.DispensaryServiceUnitID', $location)
-                    ->whereNotIn('poh_inner.GCTransactionStatus', ['X121^999'])
-                    ->whereNot('pch.TotalAmount', '=', '.00')
-                    ->whereNotIn('r.MRN', [10, 527556])
-                    ->where('pod_inner.IsCompound', 1)
-                    ->whereColumn('poh.PrescriptionOrderID', 'poh_inner.PrescriptionOrderID');
-            });
-
-        // Gabungkan kedua subquery dengan UNION ALL
-        $combinedOrders = $racikan->unionAll($nonRacikan);
-
-        // Lakukan agregasi pada hasil gabungan dari subquery
-        $results = DB::table(DB::raw("({$combinedOrders->toSql()}) as combined"))
-            ->mergeBindings($combinedOrders)
-            ->selectRaw("
-                combined.PenjaminGroup AS CustomerType,
-                COUNT(*) AS TotalOrder,
-                SUM(
-                    CASE
-                        WHEN combined.DurationMinutes IS NOT NULL
-                            THEN 1
-                        ELSE 0
-                    END
-                ) AS TotalOrderSelesai,
-                SUM(
-                    CASE
-                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationMinutes <= 3600 AND combined.JenisResep = 'RACIKAN')
-                            THEN 1
-                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationMinutes <= 1800 AND combined.JenisResep = 'NON RACIKAN')
-                            THEN 1
-                        ELSE 0
-                    END
-                ) AS TotalOrderOnTime,
-                SUM(
-                    CASE
-                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationMinutes > 3600 AND combined.JenisResep = 'RACIKAN')
-                            THEN 1
-                        WHEN (combined.ClosedDateFarmasi IS NOT NULL AND combined.DurationMinutes > 1800 AND combined.JenisResep = 'NON RACIKAN')
-                            THEN 1
-                        ELSE 0
-                    END
-                ) AS TotalOrderLateTime,
-                AVG(
-                    CASE
-                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                            THEN combined.DurationMinutes
-                        END
-                ) AS AverageDurationRacikan,
-                AVG(
-                    CASE
-                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                    THEN
-                        combined.DurationMinutes
-                    END
-                ) AS AverageDurationNonRacikan,
-                SUM(
-                    CASE
-                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                            THEN combined.DurationMinutes
-                    END
-                ) AS SumDurationRacikan,
-                SUM(
-                    CASE
-                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                    THEN
-                        combined.DurationMinutes
-                    END
-                ) AS SumDurationNonRacikan,
-                COUNT(
-                    CASE
-                        WHEN (combined.JenisResep = 'RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                            THEN combined.DurationMinutes
-                        END
-                ) AS CountDurationRacikan,
-                COUNT(
-                    CASE
-                        WHEN (combined.JenisResep = 'NON RACIKAN' AND combined.DurationMinutes IS NOT NULL)
-                            THEN
-                                combined.DurationMinutes
-                    END
-                ) AS CountDurationNonRacikan,
-                COUNT(*) AS TotalOrder,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL THEN 1 ELSE 0 END) AS TotalOrderUnClosed,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL AND combined.JenisResep = 'NON RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderNonRacikanUnClosed,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NULL AND combined.JenisResep = 'RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderRacikanUnClosed,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL THEN 1 ELSE 0 END) AS TotalOrderClosed,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL AND combined.JenisResep = 'NON RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderNonRacikanClosed,
-                SUM(CASE WHEN combined.ClosedDateFarmasi IS NOT NULL AND combined.JenisResep = 'RACIKAN' THEN 1 ELSE 0 END) AS TotalOrderRacikanClosed            ")
-            ->groupBy('combined.PenjaminGroup')
-            ->orderBy('combined.PenjaminGroup')
-            ->get();
         return $results;
     }
 }
