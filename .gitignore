@@ -20,3 +20,5 @@ yarn-error.log
 /.vscode
 users.csv
 bagians.csv
+server.php
+.htaccess
