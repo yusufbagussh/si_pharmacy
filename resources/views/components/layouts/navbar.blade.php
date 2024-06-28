@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-success">
     <div class="container-fluid">
         <a class="navbar-brand text-white" href="/"> <img class="mb-2"
-                src="{{ asset('images/icon_pharmacy_white.png') }}" alt="Logo"
+                src="{{ asset('storage/images/icon_pharmacy_white.png') }}" alt="Logo"
                 style="height: 30px; margin-right: 10px;">FARMASI</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,7 +36,8 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
-                            {{ auth()->user()->name }} <br>
+                            {{ auth()->user()->name }}
+                            <br>
                             <span class="text-white" id="current-datetime"></span>
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
