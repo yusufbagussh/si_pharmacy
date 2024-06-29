@@ -34,10 +34,19 @@ Route::post('/change-password', [AuthController::class, 'updatePassword'])->name
 
 Route::resource('/receipts', \App\Http\Controllers\ReceiptController::class);
 
-Route::get('/test-connection', function () {
+Route::get('/test-sqlserver', function () {
     try {
         DB::connection()->getPdo();
-        echo "Connected successfully to the database!";
+        echo "Connected successfully to the database ms sql server!";
+    } catch (\Exception $e) {
+        die("Could not connect to the database. Error: " . $e->getMessage());
+    }
+});
+
+Route::get('/test-pgsql', function () {
+    try {
+        DB::connection('pgsql_second')->getPdo();
+        echo "Connected successfully to the database postgresql!";
     } catch (\Exception $e) {
         die("Could not connect to the database. Error: " . $e->getMessage());
     }
