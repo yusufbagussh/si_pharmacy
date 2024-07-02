@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-success">
     <div class="container-fluid">
         <a class="navbar-brand text-white" href="/"> <img class="mb-2"
-                src="{{ asset('storage/images/icon_pharmacy_white.png') }}" alt="Logo"
+                src="{{ asset('images/icon_pharmacy_white.png') }}" alt="Logo"
                 style="height: 30px; margin-right: 10px;">FARMASI</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
