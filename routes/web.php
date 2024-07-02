@@ -7,10 +7,10 @@ use App\Http\Controllers\AuthController;
 
 
 Route::get('/', function () {
-    return redirect('/pharmacies/dashboard/orders');
+    return redirect('/orders');
 })->middleware(['auth', 'farmasi']);
 
-Route::group(['prefix' => 'pharmacies/dashboard', 'middleware' => ['auth', 'farmasi']], function () {
+Route::group(['prefix' => '/group', 'middleware' => ['auth', 'farmasi']], function () {
     Route::controller(DashboardController::class)->group(function () {
         Route::get('locations', 'location')->name('pharmacies.dashboard.locations');
         Route::get('payers', 'payer')->name('pharmacies.dashboard.payers');
@@ -20,14 +20,14 @@ Route::group(['prefix' => 'pharmacies/dashboard', 'middleware' => ['auth', 'farm
 
 // Route::get('/pharmacies/dashboard/locations', [DashboardController::class, 'location'])->name('pharmacies.dashboard.locations');
 // Route::get('/pharmacies/dashboard/payers', [DashboardController::class, 'payer'])->name('pharmacies.dashboard.payers');
-// Route::get('/pharmacies/dashboard/orders', [DashboardController::class, 'order'])->name('pharmacies.dashboard.orders')->middleware('auth');
+Route::get('/orders', [DashboardController::class, 'order'])->name('pharmacies.dashboard.orders')->middleware('auth');
 
 /**
  * Route Autentikasi
  */
 Route::get('/login', [AuthController::class, 'index'])->name('login')->middleware('guest');
 Route::post('/login', [AuthController::class, 'authenticate'])->name('authenticate');
-Route::post('/logout', [AuthController::class, 'logout']);
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::get('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
 Route::post('/change-password', [AuthController::class, 'updatePassword'])->name('update-password')->middleware('auth');
