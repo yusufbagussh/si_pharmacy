@@ -167,7 +167,7 @@
                                     <td class="key">{{ ++$key }}</td>
                                     <td class="no-rekan-medis">{{ $nonRacikan->MedicalNo }}</td>
                                     <td class="patient-name">{{ $nonRacikan->PatientName }}</td>
-                                    <td>{{ $nonRacikan->Penjamin }}</td>
+                                    <td>@checkCustomerType($nonRacikan->GCCustomerType, $nonRacikan->Penjamin)</td>
                                     <td class="text-bar">
                                         <div id="progress-bar-nonracikan{{ $key }}"
                                             class="progress-bar bg-primary" role="progressbar"
@@ -212,7 +212,7 @@
                                     <td class="key">{{ ++$key }}</td>
                                     <td class="no-rekan-medis">{{ $racikan->MedicalNo }}</td>
                                     <td class="patient-name">{{ $racikan->PatientName }}</td>
-                                    <td>{{ $racikan->Penjamin }}</td>
+                                    <td>@checkCustomerType($racikan->GCCustomerType, $racikan->Penjamin)</td>
                                     <td class="text-bar">
                                         <div id="progress-bar-racikan{{ $key }}" class="progress-bar bg-primary"
                                             role="progressbar" style="width: 0%;color: white" aria-valuenow="0"

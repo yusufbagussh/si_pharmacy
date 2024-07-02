@@ -18,7 +18,7 @@ class DashboardController extends Controller
         '100' => 'Farmasi Rawat Jalan',
         // '101' => 'Farmasi Rawat Inap',
         // '133' => 'Farmasi Rawat Non-UDD',
-        // '166' => 'Farmasi IGD',
+        '166' => 'Farmasi IGD',
     ];
     private $customerTypes = [
         'all' => 'Semua',
@@ -62,7 +62,10 @@ class DashboardController extends Controller
     private $customerTypeId = 'X004^999';
     private $dateRangeStr;
     private $search = '';
-    // private $maxRetries = 5;
+
+    private const DATE_SEPARATOR = ' to ';
+    private const MAX_RETRIES = 5;
+    private const RETRY_DELAY_US = 1000000;
 
     /**
      * Create a new event instance.
@@ -76,20 +79,13 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get the view for dashboard with order data group by location.
+     * get start date and end date from date range string.
      *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Contracts\View\View
+     * @return array
      */
-    public function location(Request $request): View
+    private function getStartDateAndEndDate()
     {
-        // Cek request apakah setiap parameter mengandung nilai atau tidak
-        if ($request->date !== null) {
-            $this->dateRangeStr = $request->date;
-        }
-
-        //cek apakah di dalam string terdapat kata 'to' atau tidak
-        if (strpos($this->dateRangeStr, 'to') !== false) {
+        if (strpos($this->dateRangeStr, self::DATE_SEPARATOR) !== false) {
             // Memecah string menjadi dua tanggal
             list($start_date_str, $end_date_str) = explode(' to ', $this->dateRangeStr);
 
@@ -104,35 +100,84 @@ class DashboardController extends Controller
             $start_date = clone $today;  // Mengkloning objek DateTime
             $start_date->setTime(0, 0, 0, 0);
 
-            // Mengatur waktu end time (23:59:59.000)
-            $end_date = clone $today;
+            // Mengatur waktu end time (23:59:00.000)
+            $end_date = clone $today;  // Mengkloning objek DateTime
             $end_date->setTime(23, 59, 0, 0);
 
+            // Mengonversi objek DateTime ke string sebagai parameter yang di pass ke view
             $start_date_str =  $start_date->format('d-m-Y H:i');
             $end_date_str = $end_date->format('d-m-Y H:i');
             $this->dateRangeStr = $start_date_str . ' to ' . $end_date_str;
         }
+        return array($start_date, $end_date);
+    }
+
+    /**
+     * Execute a callback within a database transaction with retries.
+     *
+     * @param callable $callback
+     */
+    private function executeWithRetries(callable $callback)
+    {
+        $retries = 0;
+        while ($retries < self::MAX_RETRIES) {
+            try {
+                DB::transaction($callback);
+                return;
+            } catch (QueryException $e) {
+                Log::error('Database transaction failed: ' . $e->getMessage());
+                usleep(self::RETRY_DELAY_US);
+                $retries++;
+            }
+        }
+        throw new \Exception('Max retries reached for database transaction');
+    }
+
+    /**
+     * Get the view for dashboard with order data group by location.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function location(Request $request): View
+    {
+        // Cek apakah setiap request mengandung nilai atau tidak
+        if ($request->location !== null) {
+            $this->locationId = $request->location;
+        }
+
+        if ($request->date !== null) {
+            $this->dateRangeStr = $request->date;
+        }
+
+        //cek apakah di dalam string terdapat kata 'to' atau tidak
+        list($start_date, $end_date) = $this->getStartDateAndEndDate();
 
         $data = [];
 
         //Melakukan transaksi database, try hingga transaksi berhasil dan jeda setiap 1 detik sebelum mencoba lagi
-        while (true) {
-            try {
-                DB::transaction(function () use (&$data, $start_date, $end_date) {
-                    $data = $this->pharmacy->getSummaryOrderPharmacyGroupByLocation(startDate: $start_date, endDate: $end_date, location: $this->locationId);
-                });
-                break; // keluar dari loop jika transaksi berhasil
-            } catch (QueryException $e) {
-                Log::error('Database transaction failed: ' . $e->getMessage());
-                // Tunggu sebentar sebelum mencoba lagi
-                usleep(1000000); // tidur selama 1 detik
-            }
-        }
+        // while (true) {
+        //     try {
+        //         DB::transaction(function () use (&$data, $start_date, $end_date) {
+        //             $data = $this->pharmacy->getSummaryOrderPharmacyGroupByLocation(startDate: $start_date, endDate: $end_date, location: $this->locationId);
+        //         });
+        //         break; // keluar dari loop jika transaksi berhasil
+        //     } catch (QueryException $e) {
+        //         Log::error('Database transaction failed: ' . $e->getMessage());
+        //         // Tunggu sebentar sebelum mencoba lagi
+        //         usleep(1000000); // tidur selama 1 detik
+        //     }
+        // }
+        $this->executeWithRetries(function () use (&$data, $start_date, $end_date) {
+            $data = $this->pharmacy->getSummaryOrderPharmacyGroupByLocation($start_date, $end_date, $this->locationId);
+        });
 
         return view('pharmacy.dashboards.location', [
-            'tittle' => 'Dashboard by Location',
+            'title' => 'Dashboard by Location',
             'active' => 'login',
-            'locations' => $data,
+            'pharmacyLocations' => $data,
+            'locations' => $this->locations,
+            'locationId' => $this->locationId,
             'date' => $this->dateRangeStr,
         ]);
     }
@@ -145,7 +190,7 @@ class DashboardController extends Controller
      */
     public function payer(Request $request): View
     {
-        // Cek request apakah setiap parameter mengandung nilai atau tidak
+        // Cek setiap requet apakah mengandung nilai atau tidak
         if ($request->location !== null) {
             $this->locationId = $request->location;
         }
@@ -154,53 +199,37 @@ class DashboardController extends Controller
             $this->dateRangeStr = $request->date;
         }
 
-        if (strpos($this->dateRangeStr, 'to') !== false) {
+        //pecah request dateRangeStr menjadi dua, start date dan end date, jika mengandung kata 'to'
+        list($start_date, $end_date) = $this->getStartDateAndEndDate();
 
-            // Memecah string menjadi dua tanggal
-            list($start_date_str, $end_date_str) = explode(' to ', $this->dateRangeStr);
-
-            $start_date = DateTime::createFromFormat('d-m-Y H:i', trim($start_date_str));
-            $end_date = DateTime::createFromFormat('d-m-Y H:i', trim($end_date_str));
-        } else {
-            // Mendapatkan tanggal hari ini
-            $today = new DateTime('today');
-
-            // Mengatur waktu start time (00:00:00.000)
-            $start_date = clone $today;  // Mengkloning objek DateTime
-            $start_date->setTime(0, 0, 0, 0);
-
-            // Mengatur waktu end time (23:59:00.000)
-            $end_date = clone $today;  // Mengkloning objek DateTime
-            $end_date->setTime(23, 59, 0, 0);
-
-            $start_date_str =  $start_date->format('d-m-Y H:i');
-            $end_date_str = $end_date->format('d-m-Y H:i');
-            $this->dateRangeStr = $start_date_str . ' to ' . $end_date_str;
-        }
-
-        $data = $dataNonRacikans = $dataRacikans = $dataOrder = [];
+        $dataSummary = $dataOrder = [];
 
         //Melakukan transaksi database, try hingga transaksi berhasil dan jeda setiap 1 detik sebelum mencoba lagi
-        while (true) {
-            try {
-                DB::transaction(function () use (&$data, &$dataOrder, &$dataNonRacikans, &$dataRacikans, $start_date, $end_date) {
-                    $data = $this->pharmacy->getSummaryOrderPharmacyRajalByPayer(startDate: $start_date, endDate: $end_date, location: $this->locationId);
-                    // $dataNonRacikans = $this->pharmacy->getFiveOldestOrderNonRacikanRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
-                    // $dataRacikans = $this->pharmacy->getFiveOldestOrderRacikanRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
-                    $dataOrder = $this->pharmacy->getFiveOldestOrderRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
-                });
-                break; // keluar dari loop jika transaksi berhasil
-            } catch (QueryException $e) {
-                Log::error('Database transaction failed: ' . $e->getMessage());
-                // Tunggu sebentar sebelum mencoba lagi
-                usleep(1000000); // jeda selama 1 detik untuk mengeksekusi kembali
-            }
-        }
+        // while (true) {
+        //     try {
+        //         DB::transaction(function () use (&$dataSummary, &$dataOrder, &$dataNonRacikans, &$dataRacikans, $start_date, $end_date) {
+        //             $dataSummary = $this->pharmacy->getSummaryOrderPharmacyRajalByPayer(startDate: $start_date, endDate: $end_date, location: $this->locationId);
+        //             // $dataNonRacikans = $this->pharmacy->getFiveOldestOrderNonRacikanRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
+        //             // $dataRacikans = $this->pharmacy->getFiveOldestOrderRacikanRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
+        //             $dataOrder = $this->pharmacy->getFiveOldestOrderRajal(startDate: $start_date, endDate: $end_date, location: $this->locationId);
+        //         });
+        //         break; // keluar dari loop jika transaksi berhasil
+        //     } catch (QueryException $e) {
+        //         Log::error('Database transaction failed: ' . $e->getMessage());
+        //         // Tunggu sebentar sebelum mencoba lagi
+        //         usleep(1000000); // jeda selama 1 detik untuk mengeksekusi kembali
+        //     }
+        // }
+
+        $this->executeWithRetries(function () use (&$dataSummary, &$dataOrder, $start_date, $end_date) {
+            $dataSummary = $this->pharmacy->getSummaryOrderPharmacyRajalByPayer($start_date, $end_date, $this->locationId);
+            $dataOrder = $this->pharmacy->getFiveOldestOrderRajal($start_date, $end_date, $this->locationId);
+        });
 
         return view('pharmacy.dashboards.payer', [
-            'tittle' => 'Dashboard by Payer',
+            'title' => 'Dashboard by Payer',
             'active' => 'login',
-            'classes' => $data,
+            'classes' => $dataSummary,
             'locations' => $this->locations,
             'locationId' => $this->locationId,
             'date' => $this->dateRangeStr,
@@ -218,7 +247,7 @@ class DashboardController extends Controller
      */
     public function order(Request $request): View
     {
-        // Cek request apakah setiap parameter mengandung nilai atau tidak
+        // Cek apakah setiap request mengandung nilai atau tidak
         if ($request->location !== null) {
             $this->locationId = $request->location;
         }
@@ -277,21 +306,36 @@ class DashboardController extends Controller
         $data = [];
 
         //Melakukan transaksi database, try hingga transaksi berhasil dan jeda setiap 1 detik sebelum mencoba lagi
-        while (true) {
-            try {
-                DB::transaction(function () use (&$data, $start_date, $end_date) {
-                    $data = $this->pharmacy->getListOrderRajal(startDate: $start_date, endDate: $end_date, customerType: $this->customerTypeId, location: $this->locationId, statusOrder: $this->statusOrderId, search: $this->search, perPage: $this->perPage, sortBy: $this->sortId, jenisOrder: $this->jenisOrderId);
-                });
-                break; // keluar dari loop jika transaksi berhasil
-            } catch (QueryException $e) {
-                Log::error('Database transaction failed: ' . $e->getMessage());
-                // Tunggu sebentar sebelum mencoba lagi
-                usleep(1000000); // tidur selama 1 detik
-            }
-        }
+        // while (true) {
+        //     try {
+        //         DB::transaction(function () use (&$data, $start_date, $end_date) {
+        //             $data = $this->pharmacy->getListOrderRajal(startDate: $start_date, endDate: $end_date, customerType: $this->customerTypeId, location: $this->locationId, statusOrder: $this->statusOrderId, search: $this->search, perPage: $this->perPage, sortBy: $this->sortId, jenisOrder: $this->jenisOrderId);
+        //         });
+        //         break; // keluar dari loop jika transaksi berhasil
+        //     } catch (QueryException $e) {
+        //         Log::error('Database transaction failed: ' . $e->getMessage());
+        //         // Tunggu sebentar sebelum mencoba lagi
+        //         usleep(1000000); // tidur selama 1 detik
+        //     }
+        // }
+
+        //Melakukan eksekusi transaksi database, try hingga transaksi berhasil dengan maksimal 5x percobaan
+        $this->executeWithRetries(function () use (&$data, $start_date, $end_date) {
+            $data = $this->pharmacy->getListOrderRajal(
+                startDate: $start_date,
+                endDate: $end_date,
+                customerType: $this->customerTypeId,
+                location: $this->locationId,
+                statusOrder: $this->statusOrderId,
+                search: $this->search,
+                perPage: $this->perPage,
+                sortBy: $this->sortId,
+                jenisOrder: $this->jenisOrderId,
+            );
+        });
 
         return view('pharmacy.dashboards.list_order', [
-            'tittle' => 'Dashboard List Order',
+            'title' => 'Dashboard List Order',
             'active' => 'login',
             'pharmacies' => $data,
             'locations' => $this->locations,

@@ -19,7 +19,7 @@ class AuthController extends Controller
     public function index()
     {
         return view('authentication.login', [
-            'tittle' => 'Login',
+            'title' => 'Login',
             'active' => 'login'
         ]);
     }
@@ -27,7 +27,7 @@ class AuthController extends Controller
     public function changePassword()
     {
         return view('authentication.change_password', [
-            'tittle' => 'Change Password',
+            'title' => 'Change Password',
             'active' => 'change-password'
         ]);
     }

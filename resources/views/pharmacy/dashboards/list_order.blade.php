@@ -110,9 +110,9 @@
                         <th scope="col" class="align-middle">Order Dikirim</th>
                         <th scope="col" class="align-middle">Order Diproses</th>
                         <th scope="col" class="align-middle">Order Selesai</th>
-                        <th scope="col" class="align-middle">Lokasi</th>
+                        {{-- <th scope="col" class="align-middle">Lokasi</th> --}}
                         <th scope="col" class="align-middle">Poli</th>
-                        <th scope="col" class="align-middle">Orderer</th>
+                        <th scope="col" class="align-middle">User Input</th>
                     </tr>
                 </thead>
                 <tbody class="table-group-divider">
@@ -124,7 +124,19 @@
                             <td class="key">{{ ++$numRow }}</td>
                             <td class="no-rekan-medis">{{ $pharmacy->MedicalNo }}</td>
                             <td class="patient-name">{{ $pharmacy->PatientName }}</td>
-                            <td>{{ $pharmacy->Penjamin }}</td>
+                            {{-- @if ($pharmacy->GCCustomerType == 'X004^500')
+                                <td>BPJS - Kemenkes</td>
+                            @elseif(
+                                $pharmacy->GCCustomerType == 'X004^999' ||
+                                    $pharmacy->GCCustomerType == 'X004^251' ||
+                                    $pharmacy->GCCustomerType == 'X004^300')
+                                <td>Personal</td>
+                            @elseif($pharmacy->GCCustomerType == 'X004^100' || $pharmacy->GCCustomerType == 'X004^200')
+                                <td>Asuransi</td>
+                            @else
+                                <td>{{ $pharmacy->Penjamin }}</td>
+                            @endif --}}
+                            <td>@checkCustomerType($pharmacy->GCCustomerType, $pharmacy->Penjamin)</td>
                             <td class="status-transaksi">{{ $pharmacy->StatusTransaksi }}</td>
                             <td>{{ $pharmacy->StatusOrder }}</td>
                             <td class="text-bar">
@@ -136,14 +148,14 @@
                             </td>
                             <td class="jenis-resep">{{ $pharmacy->JenisResep }}</td>
                             <td>
-                                {{ $pharmacy->SendOrderDateTime ? \Carbon\Carbon::parse($pharmacy->SendOrderDateTime)->format('d-m-Y H:i') : '-' }}
+                                {{ $pharmacy->SendOrderDateTime ? \Carbon\Carbon::parse($pharmacy->SendOrderDateTime)->format('j F Y H:i') : '-' }}
                             </td>
-                            <td>{{ $pharmacy->ProposedDateTime ? \Carbon\Carbon::parse($pharmacy->ProposedDateTime)->format('d-m-Y H:i') : '-' }}
+                            <td>{{ $pharmacy->ProposedDateTime ? \Carbon\Carbon::parse($pharmacy->ProposedDateTime)->format('j F Y H:i') : '-' }}
                             </td>
-                            <td>{{ $pharmacy->ClosedDateFarmasi }}
-                                {{ $pharmacy->ClosedTimeFarmasi ? \Carbon\Carbon::parse($pharmacy->ClosedTimeFarmasi)->format('H:i') : '-' }}
+                            <td>{{ $pharmacy->ClosedDateFarmasi ? \Carbon\Carbon::parse($pharmacy->ProposedDateTime)->format('j F Y') : '-' }}
+                                {{ $pharmacy->ClosedTimeFarmasi ? \Carbon\Carbon::parse($pharmacy->ClosedTimeFarmasi)->format('H:i') : '' }}
                             </td>
-                            <td>{{ $pharmacy->Dispensary }}</td>
+                            {{-- <td>{{ $pharmacy->Dispensary }}</td> --}}
                             <td>{{ $pharmacy->Poli }}</td>
                             <td>{{ $pharmacy->Orderer }}</td>
                         </tr>

@@ -37,5 +37,33 @@ class AppServiceProvider extends ServiceProvider
                 echo sprintf('%02d:%02d:%02d', \$hours, \$minutes, \$seconds);
             ?>";
         });
+
+        Blade::directive('checkCustomerType', function ($expression) {
+            // Mengurai parameter
+            $params = str_getcsv($expression, ',', "'");
+
+            $customerGroupParam = trim($params[0]);
+            $customerTypeParam = trim($params[1]);
+
+            return "<?php
+                switch ($customerGroupParam) {
+                    case 'X004^500':
+                        echo 'BPJS - Kemenkes';
+                        break;
+                    case 'X004^999':
+                    case 'X004^251':
+                    case 'X004^300':
+                        echo 'Personal';
+                        break;
+                    case 'X004^100':
+                    case 'X004^200':
+                        echo 'Asuransi';
+                        break;
+                    default:
+                        echo $customerTypeParam;
+                        break;
+                }
+            ?>";
+        });
     }
 }

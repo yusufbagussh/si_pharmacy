@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Bagian;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use League\Csv\Reader;
 use Illuminate\Database\Seeder;
@@ -24,7 +23,10 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-        $this->call(BagianSeeder::class);
-        $this->call(UserSeeder::class);
+        $this->call([
+            BagianSeeder::class,
+            UserSeeder::class,
+            ReceiptStandardTimeSeeder::class,
+        ]);
     }
 }

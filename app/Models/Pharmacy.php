@@ -74,6 +74,7 @@ class Pharmacy extends Model
             ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
             ->where('poh.DispensaryServiceUnitID', $location)
             ->whereNot('pch.TotalAmount', '=', '.00')
+            // ->whereIn('c.GCCustomerType', ['X004^500', 'X004^999', 'X004^251', 'X004^300', 'X004^100', 'X004^200'])
             ->whereNotIn('r.MRN', [10, 527556])
             ->whereNotIn('poh.GCTransactionStatus', ['X121^999']);
         return $basedQuery;
@@ -87,7 +88,7 @@ class Pharmacy extends Model
      */
     protected function addWhereNotExistsQuery($query, $startDate, $endDate, $location)
     {
-        $addWhereNotExistsQuery = $query->whereNotExists(function ($query) use ($startDate, $endDate, $location) {
+        return $query->whereNotExists(function ($query) use ($startDate, $endDate, $location) {
             $query->select(DB::raw(1))
                 ->from('PrescriptionOrderHd as poh2')
                 ->join('PrescriptionOrderDt as pod', 'poh2.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
@@ -101,6 +102,7 @@ class Pharmacy extends Model
                 ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
                 ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
                 ->where('poh2.DispensaryServiceUnitID', $location)
+                // ->whereIn('c.GCCustomerType', ['X004^500', 'X004^999', 'X004^251', 'X004^300', 'X004^100', 'X004^200'])
                 ->whereNotIn('poh2.GCTransactionStatus', ['X121^999'])
                 ->whereNot('pch.TotalAmount', '=', '.00')
                 ->whereNotIn('r.MRN', [10, 527556])
@@ -108,8 +110,61 @@ class Pharmacy extends Model
                 ->whereRaw('poh2.PrescriptionOrderID = poh.PrescriptionOrderID');
         });
 
-        return $addWhereNotExistsQuery;
+        // return $addWhereNotExistsQuery;
     }
+
+    // protected function addWhereNotExistsQueryV2($query, $startDate, $endDate, $location, $customerType, $statusOrder, $search)
+    // {
+    //     return $query->whereNotExists(function ($query) use ($startDate, $endDate, $location, $customerType, $statusOrder, $search) {
+    //         $query->select(DB::raw(1))
+    //             ->from('PrescriptionOrderHd as poh2')
+    //             ->join('PrescriptionOrderDt as pod', 'poh2.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
+    //             ->leftJoin('PatientChargesHd as pch', function ($join) {
+    //                 $join->on('poh2.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
+    //                     ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
+    //             })
+    //             ->join('ConsultVisit as cv', 'poh2.VisitID', '=', 'cv.VisitID')
+    //             ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
+    //             ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
+    //             ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
+    //             ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
+    //             ->where('poh2.DispensaryServiceUnitID', $location)
+    //             ->whereNotIn('poh2.GCTransactionStatus', ['X121^999'])
+    //             ->whereNot('pch.TotalAmount', '=', '.00')
+    //             ->whereNotIn('r.MRN', [10, 527556])
+    //             ->where('pod.IsCompound', 1)
+    //             ->whereRaw('poh2.PrescriptionOrderID = poh.PrescriptionOrderID');
+
+    //         if ($customerType === '1') {
+    //             $query->where('c.GCCustomerType', '=', 'X004^500');
+    //         } else if ($customerType === '2') {
+    //             $query->whereIn('c.GCCustomerType', ['X004^999', 'X004^251', 'X004^300']);
+    //         } else if ($customerType === '3') {
+    //             $query->whereIn('c.GCCustomerType', ['X004^100', 'X004^200']);
+    //         } else if ($customerType === '4') {
+    //             $query->whereIn('c.GCCustomerType', ['X004^250', 'X004^400', 'X004^201']);
+    //         }
+
+    //         if ($statusOrder !== 'all') {
+    //             if ($statusOrder === '2') {
+    //                 $query
+    //                     ->whereNull('poh.ClosedDate');
+    //             } else {
+    //                 $query->whereNotNull('poh.ClosedDate');
+    //             }
+    //         }
+    //         if (!empty($search)) {
+    //             $query->where(function ($query) use ($search) {
+    //                 $query
+    //                     ->where('p.FullName', 'LIKE', "%{$search}%")
+    //                     ->orWhere('p.MedicalNo', 'LIKE', "%{$search}%")
+    //                     ->orWhere('sc.StandardCodeName', 'LIKE', "%{$search}%");
+    //             });
+    //         }
+    //     });
+
+    //     // return $addWhereNotExistsQuery;
+    // }
 
     /**
      * Get five oldest order data when type is Non-Racikan
@@ -187,7 +242,7 @@ class Pharmacy extends Model
                         sud.ServiceUnitName
                     END
                 AS Dispensary"),
-            );
+            )->whereIn('c.GCCustomerType', ['X004^500', 'X004^999', 'X004^251', 'X004^300', 'X004^100', 'X004^200']);
         // Subquery untuk Racikan
         $racikan = (clone $baseQueryOrderByLocation)
             ->addSelect((DB::raw("'RACIKAN' AS JenisResep")))
@@ -200,7 +255,7 @@ class Pharmacy extends Model
             // ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
             ->where(function ($query) use ($startDate, $endDate, $location) {
                 $this->addWhereNotExistsQuery($query, $startDate, $endDate, $location);
-                // ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
+                $query->whereIn('c.GCCustomerType', ['X004^500', 'X004^999', 'X004^251', 'X004^300', 'X004^100', 'X004^200']);
             });
 
         // Gabungkan kedua subquery dengan UNION ALL
@@ -321,7 +376,7 @@ class Pharmacy extends Model
                                 THEN 'Asuransi'
                         END
                     AS PenjaminGroup")
-            );
+            )->whereIn('c.GCCustomerType', ['X004^500', 'X004^999', 'X004^251', 'X004^300', 'X004^100', 'X004^200']);
 
         // Subquery untuk Racikan
         $racikan = (clone $baseQueryOrderByPayer)
@@ -334,7 +389,7 @@ class Pharmacy extends Model
             ->addSelect((DB::raw("'NON RACIKAN' AS JenisResep")))
             ->where(function ($query) use ($startDate, $endDate, $location) {
                 $this->addWhereNotExistsQuery($query, $startDate, $endDate, $location);
-                // ->whereNotIn('poh.DispensaryServiceUnitID', [101, 133])
+                $query->whereIn('c.GCCustomerType', ['X004^500', 'X004^999', 'X004^251', 'X004^300', 'X004^100', 'X004^200']);
             });
 
         // Gabungkan kedua subquery dengan UNION ALL
@@ -427,7 +482,6 @@ class Pharmacy extends Model
      * Get list order when location in Dispensary Rawat Jalan
      *
      * @param string $startDate, $endDate, $customerType, $location, $statusOrder, $search, $sortBy, $jenisOrder
-     * @param int $perPage
      * @return array
      */
     function getListOrderRajal(
@@ -464,7 +518,9 @@ class Pharmacy extends Model
         }
 
         //Cek apakah ada parameter customerType, 1 = JKN/BPJS, 2 = Personal, 3 = Asuransi
-        if ($customerType === '1') {
+        if ($customerType === 'all') {
+            $queryRacikan->whereIn('c.GCCustomerType', ['X004^500', 'X004^999', 'X004^251', 'X004^300', 'X004^100', 'X004^200']);
+        } else if ($customerType === '1') {
             $queryRacikan->where('c.GCCustomerType', '=', 'X004^500');
         } else if ($customerType === '2') {
             $queryRacikan->whereIn('c.GCCustomerType', ['X004^999', 'X004^251', 'X004^300']);
@@ -484,34 +540,15 @@ class Pharmacy extends Model
             });
         }
 
-        //Filter berdasarkan jenis order = racikan
-        $queryRacikan->where('pod.IsCompound', 1);
-
         // Query untuk resep non-racikan
         $queryNonRacikan = (clone $baseQueryListOrder) //Status Transaksi di void
             ->addSelect(DB::raw("'NON RACIKAN' AS JenisResep"))
-            ->whereNotExists(function ($query) use ($startDate, $endDate, $location, $customerType, $statusOrder) {
-                //Cari order yang tidak mengandung racikan
-                $query->select(DB::raw(1))
-                    ->from('PrescriptionOrderHd as poh2')
-                    ->join('PrescriptionOrderDt as pod', 'poh2.PrescriptionOrderID', '=', 'pod.PrescriptionOrderID')
-                    ->leftJoin('PatientChargesHd as pch', function ($join) {
-                        $join->on('poh2.PrescriptionOrderID', '=', 'pch.PrescriptionOrderID')
-                            ->whereNotIn('pch.GCTransactionStatus', ['X121^999']);
-                    })
-                    ->join('ConsultVisit as cv', 'poh2.VisitID', '=', 'cv.VisitID')
-                    ->join('Registration as r', 'cv.RegistrationID', '=', 'r.RegistrationID')
-                    ->join('BusinessPartners as bp', 'r.BusinessPartnerID', '=', 'bp.BusinessPartnerID')
-                    ->join('Customer as c', 'bp.BusinessPartnerID', '=', 'c.BusinessPartnerID')
-                    ->whereBetween('poh.PrescriptionDate', [$startDate, $endDate])
-                    ->where('poh2.DispensaryServiceUnitID', $location)
-                    ->whereNotIn('poh2.GCTransactionStatus', ['X121^999'])
-                    ->whereNot('pch.TotalAmount', '=', '.00')
-                    ->whereNotIn('r.MRN', [10, 527556])
-                    ->where('pod.IsCompound', 1)
-                    ->whereRaw('poh2.PrescriptionOrderID = poh.PrescriptionOrderID');
+            ->where(function ($query) use ($startDate, $endDate, $location, $customerType, $statusOrder, $search) {
+                $this->addWhereNotExistsQuery($query, $startDate, $endDate, $location);
 
-                if ($customerType === '1') {
+                if ($customerType === 'all') {
+                    $query->whereIn('c.GCCustomerType', ['X004^500', 'X004^999', 'X004^251', 'X004^300', 'X004^100', 'X004^200']);
+                } else if ($customerType === '1') {
                     $query->where('c.GCCustomerType', '=', 'X004^500');
                 } else if ($customerType === '2') {
                     $query->whereIn('c.GCCustomerType', ['X004^999', 'X004^251', 'X004^300']);
@@ -548,8 +585,9 @@ class Pharmacy extends Model
                     ->WhereNotNull('poh.ClosedDate');
             }
         }
-
-        if ($customerType === '1') {
+        if ($customerType === 'all') {
+            $queryNonRacikan->whereIn('c.GCCustomerType', ['X004^500', 'X004^999', 'X004^251', 'X004^300', 'X004^100', 'X004^200']);
+        } else if ($customerType === '1') {
             $queryNonRacikan->where('c.GCCustomerType', '=', 'X004^500');
         } else if ($customerType === '2') {
             $queryNonRacikan->whereIn('c.GCCustomerType', ['X004^999', 'X004^251', 'X004^300']);

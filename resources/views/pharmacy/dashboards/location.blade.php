@@ -1,17 +1,30 @@
 @extends('layouts.main')
 @section('container')
     <div class="container">
-        <div class="my-3 d-flex justify-content-center">
-            <form action="{{ route('pharmacies.dashboard.locations') }}" method="GET" class="col-12 col-md-6 col-lg-4">
-                <div class="input-group">
-                    <input type="text" class="form-control flatpickr-date" id="date" name="date"
-                        placeholder="dd-mm-yyyy" value="{{ $date }}">
-                    <button type="submit" class="btn btn-success"><i class="bi bi-search"></i></button>
+        <div class="row my-3 d-flex col-12 col-md-12">
+            <form action="{{ route('pharmacies.dashboard.locations') }}" method="GET">
+                <div class="input-group flex-column flex-md-row justify-content-center">
+                    <div class="col-12 col-md-2">
+                        <select class="form-select mb-2 mb-md-0" id="location" name="location"
+                            aria-label="Default select example">
+                            @foreach ($locations as $key => $value)
+                                <option value="{{ $key }}" {{ $locationId == $key ? 'selected' : '' }}>
+                                    {{ $value }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <input type="text" class="form-control flatpickr-date mb-2 mb-md-0" id="date" name="date"
+                            placeholder="dd-mm-yyyy" value="{{ $date }}">
+                    </div>
+                    <div class="col-12 col-md-1">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-search"></i></button>
+                    </div>
                 </div>
             </form>
         </div>
         <div class="row g-3 justify-content-center mb-3">
-            @forelse ($locations as $location)
+            @forelse ($pharmacyLocations as $location)
                 <div class="col-12 col-md-6">
                     <div class="card bg-success text-white">
                         <div class="card-body">
