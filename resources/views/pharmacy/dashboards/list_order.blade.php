@@ -77,7 +77,7 @@
                     <div class="col-12 col-md-2 mb-2">
                         <div class="row">
                             {{-- Sort By --}}
-                            <label for="sort_by" class="form-label">OrderBy</label>
+                            <label for="sort_by" class="form-label">SortBy</label>
                             <div class="custom-inline-form">
                                 <select class="form-select" id="sort_by" name="sort_by"
                                     aria-label="Default select example">
